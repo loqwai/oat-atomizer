@@ -48,18 +48,39 @@ function equalizer(analyser) {
   requestAnimationFrame(() => equalizer(analyser));
 }
 
+//	The sound is input as a 512x2 texture with the bottom layer being the wave form where the brightness corrosponds
+//	with the amplitude of the sample and the top layer being a frequency spectrum of the underlying sine wave
+//	frequencies where brightness is the amplitude of the wave and each line represents average of 23 hz frequencies.
+//	The texture is single channel red so the texture, when drawn, is red.
+/**
+ * visualizer
+ * @param {AnalyserNode} analyser
+ */
+function analyserToTexture(analyser) {
+  const frequencyData = new Float32Array(512);
+  analyser.getFloatFrequencyData(frequencyData);
+  for (let i = 0; i < frequencyData.length; i++) {
+    frequencyData[i] = Math.abs(frequencyData[i] / 256.0);
+  }
+
+  window.frequencyData = frequencyData;
+
+  requestAnimationFrame(() => analyserToTexture(analyser));
+}
+
 async function micToTexture() {
   const stream = await getMicrophoneStream();
 
   const audioContext = new AudioContext();
   const audioInput = audioContext.createMediaStreamSource(stream);
   const analyser = audioContext.createAnalyser();
+  analyser.fftSize = 2048;
   audioInput.connect(analyser);
 
   const source = audioContext.createMediaStreamSource(stream);
   source.connect(analyser);
 
-  requestAnimationFrame(() => equalizer(analyser));
+  requestAnimationFrame(() => analyserToTexture(analyser));
 }
 
 async function getMicrophoneStream() {

@@ -91,12 +91,23 @@
     ]), gl.STATIC_DRAW) // Two triangles covering the entire screen
   }
 
-  function draw() {
+  /**
+   * @param {!WebGLRenderingContext} gl The WebGL Context.
+   */
+  function draw(gl) {
     /** @type {!HTMLCanvasElement} */
-    const equalizerCanvas = document.querySelector('#equalizer');
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, equalizerCanvas);
-    gl.generateMipmap(gl.TEXTURE_2D);
+    // const equalizerCanvas = document.querySelector('#equalizer');
+
+
+    if (window.frequencyData) {
+      /** @type {!Float32Array} */
+      const data = window.frequencyData;
+
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, 512, 1, 0, gl.RED, gl.FLOAT, data, 0);
+      // gl.generateMipmap(gl.TEXTURE_2D);
+    }
 
     // Clear the canvas
     gl.clearColor(0, 0, 0, 0);
@@ -110,7 +121,7 @@
 
     // Draw the geometry.
     gl.drawArrays(gl.TRIANGLES, 0, 6);
-    requestAnimationFrame(draw);
+    requestAnimationFrame(() => draw(gl));
   }
 
   const vertexShaderSource = `#version 300 es
@@ -132,7 +143,9 @@
     out vec4 outColor;
 
     void main() {
-      outColor = texture(u_texture, v_texcoord);
+      vec4 c = texture(u_texture, v_texcoord);
+      float val = 1.0 - c.r;
+      outColor = vec4(val, val, val, 1.0);
     }
   `;
 
@@ -177,7 +190,8 @@
   gl.activeTexture(gl.TEXTURE0 + 0);
   gl.bindTexture(gl.TEXTURE_2D, texture);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 255, 255]));
-
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 
   // const image = new Image();
   // image.src  = './test_img.png';
@@ -185,5 +199,5 @@
   //   gl.bindTexture(gl.TEXTURE_2D, texture);
 
   // })
-  requestAnimationFrame(draw);
+  requestAnimationFrame(() => draw(gl));
 })()

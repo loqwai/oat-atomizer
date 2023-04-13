@@ -1,5 +1,8 @@
 const canvas = document.querySelector('#equalizer');
 const shaderCanvas = document.querySelector('#shader-canvas');
+/**
+ * @type {CanvasRenderingContext2D}
+ */
 const canvasCtx = canvas.getContext('2d');
 const WIDTH = canvas.offsetWidth;
 const HEIGHT = canvas.offsetHeight;
@@ -39,11 +42,13 @@ function equalizer(analyser) {
 
   canvasCtx.lineTo(WIDTH, HEIGHT / 2);
   canvasCtx.stroke();
+  // get the image data from the canvas
+  // window.imageData = canvasCtx.getImageData(0, 0, WIDTH, HEIGHT);
 
   requestAnimationFrame(() => equalizer(analyser));
 }
 
-async function micToShader() {
+async function micToTexture() {
   const stream = await getMicrophoneStream();
 
   const audioContext = new AudioContext();
@@ -54,8 +59,6 @@ async function micToShader() {
   const source = audioContext.createMediaStreamSource(stream);
   source.connect(analyser);
 
-
-
   requestAnimationFrame(() => equalizer(analyser));
 }
 
@@ -64,6 +67,6 @@ async function getMicrophoneStream() {
   return stream;
 }
 
-micToShader();
+micToTexture();
 //https://mdn.github.io/webaudio-examples/voice-change-o-matic/
 //https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API/Visualizations_with_Web_Audio_API

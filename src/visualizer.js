@@ -92,6 +92,12 @@
   }
 
   function draw() {
+    /** @type {!HTMLCanvasElement} */
+    const equalizerCanvas = document.querySelector('#equalizer');
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, equalizerCanvas);
+    gl.generateMipmap(gl.TEXTURE_2D);
+
     // Clear the canvas
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -145,6 +151,7 @@
     compileShader(gl, fragmentShaderSource, gl.FRAGMENT_SHADER),
   )
 
+
   // Load the texture
   const positionAttributeLocation = gl.getAttribLocation(program, "a_position");
   const textcoordAttributeLocation = gl.getAttribLocation(program, "a_texcoord");
@@ -172,13 +179,11 @@
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 255, 255]));
 
 
-  const image = new Image();
-  image.src  = './test_img.png';
-  image.addEventListener('load', () => {
-    gl.bindTexture(gl.TEXTURE_2D, texture);
+  // const image = new Image();
+  // image.src  = './test_img.png';
+  // image.addEventListener('load', () => {
+  //   gl.bindTexture(gl.TEXTURE_2D, texture);
 
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-    gl.generateMipmap(gl.TEXTURE_2D);
-  })
+  // })
   requestAnimationFrame(draw);
 })()

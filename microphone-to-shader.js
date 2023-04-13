@@ -1,7 +1,7 @@
 const canvas = document.querySelector('#equalizer');
 const canvasCtx = canvas.getContext('2d');
-const WIDTH = canvas.clientWidth;
-const HEIGHT = canvas.clientHeight;
+const WIDTH = canvas.offsetWidth;
+const HEIGHT = canvas.offsetHeight;
 
 /**
  * visualizer
@@ -14,7 +14,7 @@ function visualizer(analyser) {
   analyser.getByteTimeDomainData(dataArray);
 
 
-  canvasCtx.fillStyle = 'rgb(200, 200, 200)';
+  canvasCtx.fillStyle = 'rgb(255, 165, 0)';
   canvasCtx.fillRect(0, 0, WIDTH, HEIGHT);
   canvasCtx.lineWidth = 2;
   canvasCtx.strokeStyle = 'rgb(0, 0, 0)';

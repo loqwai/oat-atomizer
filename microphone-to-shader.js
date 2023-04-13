@@ -1,4 +1,5 @@
 const canvas = document.querySelector('#equalizer');
+const shaderCanvas = document.querySelector('#shader-canvas');
 const canvasCtx = canvas.getContext('2d');
 const WIDTH = canvas.offsetWidth;
 const HEIGHT = canvas.offsetHeight;
@@ -7,7 +8,7 @@ const HEIGHT = canvas.offsetHeight;
  * visualizer
  * @param {AnalyserNode} analyser
  */
-function visualizer(analyser) {
+function equalizer(analyser) {
   const bufferLength = analyser.frequencyBinCount;
   const dataArray = new Uint8Array(bufferLength);
 
@@ -39,7 +40,7 @@ function visualizer(analyser) {
   canvasCtx.lineTo(WIDTH, HEIGHT / 2);
   canvasCtx.stroke();
 
-  requestAnimationFrame(() => visualizer(analyser));
+  requestAnimationFrame(() => equalizer(analyser));
 }
 
 async function micToShader() {
@@ -55,7 +56,7 @@ async function micToShader() {
 
 
 
-  requestAnimationFrame(() => visualizer(analyser));
+  requestAnimationFrame(() => equalizer(analyser));
 }
 
 async function getMicrophoneStream() {

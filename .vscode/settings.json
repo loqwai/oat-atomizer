@@ -16,5 +16,5 @@
     "reportUndefinedVariable": "none"
   },
   "python.analysis.typeCheckingMode": "strict",
-  "workbench.colorTheme": "Cobalt2"
+  "workbench.colorTheme": "Default Light+"
 }

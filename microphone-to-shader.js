@@ -57,11 +57,8 @@ function equalizer(analyser) {
  * @param {AnalyserNode} analyser
  */
 function analyserToTexture(analyser) {
-  const frequencyData = new Float32Array(512);
-  analyser.getFloatFrequencyData(frequencyData);
-  for (let i = 0; i < frequencyData.length; i++) {
-    frequencyData[i] = Math.abs(frequencyData[i] / 256.0);
-  }
+  const frequencyData = new Uint8Array(512);
+  analyser.getByteFrequencyData(frequencyData);
 
   window.frequencyData = frequencyData;
 

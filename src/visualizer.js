@@ -105,7 +105,8 @@
 
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, 512, 1, 0, gl.RED, gl.FLOAT, data, 0);
+      // gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, 512, 1, 0, gl.RED, gl.FLOAT, data, 0);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, 512, 1, 0, gl.RED, gl.UNSIGNED_BYTE, data, 0);
       // gl.generateMipmap(gl.TEXTURE_2D);
     }
 
@@ -144,8 +145,7 @@
 
     void main() {
       vec4 c = texture(u_texture, v_texcoord);
-      float val = 1.0 - c.r;
-      outColor = vec4(val, val, val, 1.0);
+      outColor = vec4(c.r, c.r, c.r, 1.0);
     }
   `;
 

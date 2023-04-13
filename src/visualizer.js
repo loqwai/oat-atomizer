@@ -1,6 +1,6 @@
 "use strict";
 
-(() => {
+(async () => {
 
   /**
    * Creates and compiles a shader.
@@ -136,18 +136,8 @@
       v_texcoord = a_texcoord;
     }
   `;
-  const fragmentShaderSource = `#version 300 es
-    precision mediump float;
 
-    in vec2 v_texcoord;
-    uniform sampler2D u_texture;
-    out vec4 outColor;
-
-    void main() {
-      vec4 c = texture(u_texture, v_texcoord);
-      outColor = vec4(c.r, c.r, c.r, 1.0);
-    }
-  `;
+  const fragmentShaderSource = await fetch('./fragment_shader.glsl').then(r => r.text())
 
   /**
    * @return {!WebGLRenderingContext} The created context.

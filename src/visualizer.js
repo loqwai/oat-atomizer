@@ -99,14 +99,14 @@
     // const equalizerCanvas = document.querySelector('#equalizer');
 
 
-    if (window.frequencyData) {
-      /** @type {!Float32Array} */
-      const data = window.frequencyData;
+    if (window.audioData) {
+      /** @type {!Uint8Array} */
+      const data = window.audioData;
 
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 
       // gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, 512, 1, 0, gl.RED, gl.FLOAT, data, 0);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, 512, 1, 0, gl.RED, gl.UNSIGNED_BYTE, data, 0);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, data.length / 2, 2, 0, gl.RED, gl.UNSIGNED_BYTE, data, 0);
       // gl.generateMipmap(gl.TEXTURE_2D);
     }
 
@@ -180,8 +180,11 @@
   gl.activeTexture(gl.TEXTURE0 + 0);
   gl.bindTexture(gl.TEXTURE_2D, texture);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 255, 255]));
+
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 
   // const image = new Image();
   // image.src  = './test_img.png';

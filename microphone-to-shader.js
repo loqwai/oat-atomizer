@@ -57,10 +57,18 @@ function equalizer(analyser) {
  * @param {AnalyserNode} analyser
  */
 function analyserToTexture(analyser) {
-  const frequencyData = new Uint8Array(512);
+  const size = 16;
+  const frequencyData = new Uint8Array(size);
   analyser.getByteFrequencyData(frequencyData);
 
-  window.frequencyData = frequencyData;
+  const waveform = new Uint8Array(size);
+  analyser.getByteTimeDomainData(waveform)
+
+  const audioData = new Uint8Array(frequencyData.length + waveform.length);
+  audioData.set(frequencyData);
+  audioData.set(waveform, frequencyData.length);
+
+  window.audioData = audioData;
 
   requestAnimationFrame(() => analyserToTexture(analyser));
 }
@@ -78,6 +86,7 @@ async function micToTexture() {
   source.connect(analyser);
 
   requestAnimationFrame(() => analyserToTexture(analyser));
+  // requestAnimationFrame(() => equalizer(analyser));
 }
 
 async function getMicrophoneStream() {

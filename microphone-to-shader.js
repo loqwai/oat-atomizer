@@ -1,53 +1,3 @@
-const canvas = document.querySelector('#equalizer');
-const shaderCanvas = document.querySelector('#shader-canvas');
-/**
- * @type {CanvasRenderingContext2D}
- */
-const canvasCtx = canvas.getContext('2d');
-const WIDTH = canvas.offsetWidth;
-const HEIGHT = canvas.offsetHeight;
-
-/**
- * visualizer
- * @param {AnalyserNode} analyser
- */
-function equalizer(analyser) {
-  const bufferLength = analyser.frequencyBinCount;
-  const dataArray = new Uint8Array(bufferLength);
-
-  analyser.getByteTimeDomainData(dataArray);
-
-
-  canvasCtx.fillStyle = 'rgb(255, 165, 0)';
-  canvasCtx.fillRect(0, 0, WIDTH, HEIGHT);
-  canvasCtx.lineWidth = 2;
-  canvasCtx.strokeStyle = 'rgb(0, 0, 0)';
-  canvasCtx.beginPath();
-
-  const sliceWidth = WIDTH / bufferLength;
-  let x = 0;
-
-  for (let i = 0; i < bufferLength; i++) {
-    const v = dataArray[i] / 128.0;
-    const y = v * HEIGHT / 2;
-
-    if (i === 0) {
-      canvasCtx.moveTo(x, y);
-    } else {
-      canvasCtx.lineTo(x, y);
-    }
-
-    x += sliceWidth;
-  }
-
-  canvasCtx.lineTo(WIDTH, HEIGHT / 2);
-  canvasCtx.stroke();
-  // get the image data from the canvas
-  // window.imageData = canvasCtx.getImageData(0, 0, WIDTH, HEIGHT);
-
-  requestAnimationFrame(() => equalizer(analyser));
-}
-
 //	The sound is input as a 512x2 texture with the bottom layer being the wave form where the brightness corrosponds
 //	with the amplitude of the sample and the top layer being a frequency spectrum of the underlying sine wave
 //	frequencies where brightness is the amplitude of the wave and each line represents average of 23 hz frequencies.
@@ -57,18 +7,22 @@ function equalizer(analyser) {
  * @param {AnalyserNode} analyser
  */
 function analyserToTexture(analyser) {
-  const size = 16;
+  const size = analyser.fftSize / 2;
   const frequencyData = new Uint8Array(size);
   analyser.getByteFrequencyData(frequencyData);
 
-  const waveform = new Uint8Array(size);
+  const waveform = new Uint8Array(analyser.fftSize);
   analyser.getByteTimeDomainData(waveform)
+  const subwave = waveform.subarray(size, waveform.length);
 
-  const audioData = new Uint8Array(frequencyData.length + waveform.length);
+
+  const audioData = new Uint8Array(frequencyData.length + subwave.length);
   audioData.set(frequencyData);
-  audioData.set(waveform, frequencyData.length);
+  audioData.set(subwave, frequencyData.length);
 
   window.audioData = audioData;
+  window.frequencyData = frequencyData;
+  window.waveform = waveform;
 
   requestAnimationFrame(() => analyserToTexture(analyser));
 }

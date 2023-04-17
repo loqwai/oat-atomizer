@@ -27,7 +27,7 @@ export class AudioData {
    */
   getWaveform = () => {
     const waveform = new Uint8Array(this.analyser.fftSize);
-    analyser.getByteTimeDomainData(waveform)
+    this.analyser.getByteTimeDomainData(waveform)
     return waveform;
   }
 }

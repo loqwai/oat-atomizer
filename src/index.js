@@ -42,3 +42,4 @@ const main = async () => {
 
 document.onclick = main
 document.ontouchstart = main
+main();

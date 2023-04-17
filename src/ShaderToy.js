@@ -16,9 +16,20 @@ export class ShaderToy {
     this.startTime = performance.now();
   }
 
+  writeAudioDataToTexture = () => {
+    const frequencyData = this.audioData.getFrequencyData();
+    const waveform = this.audioData.getWaveform();
+    const lastHalfOfWaveform = waveform.slice(waveform.length / 2);
+
+    this.gl.bindTexture(this.gl.TEXTURE_2D, this.state.audioTexture);
+    this.gl.texSubImage2D(this.gl.TEXTURE_2D, 0, 0, 0, frequencyData.length, 1, this.gl.RED, this.gl.UNSIGNED_BYTE, frequencyData);
+    this.gl.texSubImage2D(this.gl.TEXTURE_2D, 0, 0, 1, lastHalfOfWaveform.length, 1, this.gl.RED, this.gl.UNSIGNED_BYTE, lastHalfOfWaveform);
+    this._cleanup();
+  }
+
   singleFrame = () => {
     if (!this.running) return;
-
+    this.writeAudioDataToTexture();
     this.gl.useProgram(this.state.program);
     this.gl.bindTexture(this.gl.TEXTURE_2D, this.state.audioTexture);
     this.gl.bindVertexArray(this.state.vao);

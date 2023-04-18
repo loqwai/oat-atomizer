@@ -4,7 +4,7 @@ export class AudioData {
     this.context = new AudioContext();
     this.analyser = this.context.createAnalyser();
     this.loudnesses = new Array(60 * 5).fill(0);
-    this.musicalKeys = new Array(60).fill(0);
+    this.musicalKeys = new Array(2).fill(0);
     this.peaks = new Array(10).fill(0);
   }
 
@@ -80,7 +80,8 @@ export class AudioData {
     }
 
     // convert to beats per minute
-    const bpm = 6000 / averagePeakTime;
+    const bpm = 60 / (averagePeakTime / 1000)/40;
+    console.log({ bpm })
     return bpm;
   }
 

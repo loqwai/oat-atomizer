@@ -41,22 +41,22 @@ float sampleMusicA() {
 		texture( iChannel0, vec2( 0.30, 0.25 ) ).x);
 }
 
-/*An array of 12 different color schemes*/
+/*Transform a value from 1-12 into discrete points on the color wheel*/
 vec3 getColorScheme(){
 	vec3 colorScheme[12];
-	colorScheme[0] = vec3(0.0, 0.0, 0.0);
-	colorScheme[1] = vec3(0.0, 0.0, 1.0);
-	colorScheme[2] = vec3(0.0, 1.0, 0.0);
-	colorScheme[3] = vec3(0.0, 1.0, 1.0);
-	colorScheme[4] = vec3(1.0, 0.0, 0.0);
-	colorScheme[5] = vec3(1.0, 0.0, 1.0);
-	colorScheme[6] = vec3(1.0, 1.0, 0.0);
-  colorScheme[7] = vec3(1.0, 1.0, 1.0);
-	colorScheme[8] = vec3(0.5, 0.5, 0.5);
-	colorScheme[9] = vec3(0.5, 0.5, 0.0);
-	colorScheme[10] = vec3(0.5, 0.0, 0.5);
-	colorScheme[11] = vec3(0.0, 0.5, 0.5);
-	return colorScheme[iColorScheme];
+	colorScheme[0] = vec3(1.0, 0.0, 0.0);
+	colorScheme[1] = vec3(1.0, 0.5, 0.0);
+	colorScheme[2] = vec3(1.0, 1.0, 0.0);
+	colorScheme[3] = vec3(0.0, 1.0, 0.0);
+	colorScheme[4] = vec3(0.0, 1.0, 1.0);
+	colorScheme[5] = vec3(0.0, 0.0, 1.0);
+	colorScheme[6] = vec3(0.5, 0.0, 1.0);
+	colorScheme[7] = vec3(1.0, 0.0, 1.0);
+	colorScheme[8] = vec3(1.0, 0.0, 0.5);
+	colorScheme[9] = vec3(1.0, 0.0, 0.0);
+	colorScheme[10] = vec3(1.0, 0.5, 0.5);
+	colorScheme[11] = vec3(1.0, 1.0, 1.0);
+	return colorScheme[iColorScheme-1];
 }
 
 void mainImage( out vec4 fragColor, in vec2 fragCoord ) {

@@ -9,9 +9,9 @@ const calcSporeSize = (mean) => 1 + (5 * mean / 128)
 /**
  * Map AudioData parameters to SlimeMold parameters
  * @param {AudioData} audioData
- * @param {SlimeMold} slimeMold
+ * @param {ShaderToy} shaderToy
  */
-const adjustParameters = (audioData, slimeMold) => {
+const adjustParameters = (audioData, shaderToy) => {
   const waveform = audioData.getFrequencyData();
   const mean = waveform.reduce((a, b) => a + b, 0) / waveform.length;
 
@@ -19,7 +19,7 @@ const adjustParameters = (audioData, slimeMold) => {
   // slimeMold.setTurnRate(calcTurnRate(mean));
   // slimeMold.setVelocityMultiplier(calcVelocityMultiplier(mean));
 
-  requestAnimationFrame(() => adjustParameters(audioData, slimeMold));
+  requestAnimationFrame(() => adjustParameters(audioData, shaderToy));
 }
 
 const main = async () => {
@@ -42,4 +42,4 @@ const main = async () => {
 
 document.onclick = main
 document.ontouchstart = main
-main();
+// main();

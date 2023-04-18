@@ -35,6 +35,7 @@ export class ShaderToy {
     this.gl.bindVertexArray(this.state.vao);
     this.gl.uniform3f(this.state.attribs.iResolution, this.canvas.width, this.canvas.height, 1.0);
     this.gl.uniform1f(this.state.attribs.iTime, (performance.now() - this.startTime) / 1000);
+    this.gl.uniform1i(this.state.attribs.iIters, this.audioData.getBPM());
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
 
     this._cleanup();
@@ -154,6 +155,7 @@ export class ShaderToy {
     const attribs = {
       iResolution: this.gl.getUniformLocation(program, "iResolution"),
       iTime: this.gl.getUniformLocation(program, "iTime"),
+      iIters: this.gl.getUniformLocation(program, "iIters"),
     }
 
     this._cleanup()

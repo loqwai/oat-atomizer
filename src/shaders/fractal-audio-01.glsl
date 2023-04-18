@@ -4,20 +4,18 @@ precision highp float;
 uniform sampler2D iChannel0;
 uniform vec3 iResolution;
 uniform float iTime;
-
+uniform int iIters;
 out vec4 fragColor;
 
 // Fractal Audio 01
 // Author: relampago2048
 // Source: https://www.shadertoy.com/view/llB3W1
 
-const int iters = 150;
-
 int fractal(vec2 p, vec2 point) {
 	vec2 so = (-1.0 + 2.0 * point) * 0.4;
 	vec2 seed = vec2(0.098386255 + so.x, 0.6387662 + so.y);
 
-	for (int i = 0; i < iters; i++) {
+	for (int i = 0; i < iIters; i++) {
 
 		if (length(p) > 2.0) {
 			return i;
@@ -31,7 +29,7 @@ int fractal(vec2 p, vec2 point) {
 }
 
 vec3 color(int i) {
-	float f = float(i)/float(iters) * 2.0;
+	float f = float(i)/float(iIters) * 2.0;
 	f=f*f*2.;
 	return vec3((sin(f*2.0)), (sin(f*3.0)), abs(sin(f*7.0)));
 }

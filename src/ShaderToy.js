@@ -36,6 +36,7 @@ export class ShaderToy {
     this.gl.uniform3f(this.state.attribs.iResolution, this.canvas.width, this.canvas.height, 1.0);
     this.gl.uniform1f(this.state.attribs.iTime, (performance.now() - this.startTime) / 1000);
     this.gl.uniform1i(this.state.attribs.iIters, this.audioData.getBPM());
+    this.gl.uniform1i(this.state.attribs.iColorScheme, this.audioData.getMusicalKeyEstimate());
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
 
     this._cleanup();
@@ -156,6 +157,7 @@ export class ShaderToy {
       iResolution: this.gl.getUniformLocation(program, "iResolution"),
       iTime: this.gl.getUniformLocation(program, "iTime"),
       iIters: this.gl.getUniformLocation(program, "iIters"),
+      iColorScheme: this.gl.getUniformLocation(program, "iColorScheme"),
     }
 
     this._cleanup()

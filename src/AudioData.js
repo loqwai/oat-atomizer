@@ -4,6 +4,7 @@ export class AudioData {
     this.context = new AudioContext();
     this.analyser = this.context.createAnalyser();
     this.loudnesses = new Array(60 * 5).fill(0);
+    this.musicalKeys = new Array(60).fill(0);
     this.peaks = new Array(10).fill(0);
   }
 
@@ -15,6 +16,7 @@ export class AudioData {
 
     requestAnimationFrame(this.trackAverageLoudness);
     requestAnimationFrame(this.trackPeaks);
+    requestAnimationFrame(this.trackAverageMusicalKey);
   }
 
   trackAverageLoudness = () => {
@@ -22,6 +24,15 @@ export class AudioData {
     this.loudnesses.shift();
     this.loudnesses.push(frequencyData.reduce((a, b) => a + b) / frequencyData.length);
     requestAnimationFrame(this.trackAverageLoudness);
+  }
+
+  trackAverageMusicalKey = () => {
+    const frequencyData = this.getFrequencyData();
+    const maxFrequency = frequencyData.reduce((a, b, i) => a[1] > b ? a : [i, b], [0, 0])[0];
+    const musicalKey = maxFrequency % 12;
+    this.musicalKeys.shift();
+    this.musicalKeys.push(musicalKey);
+    requestAnimationFrame(this.trackAverageMusicalKey);
   }
 
   trackPeaks = () => {
@@ -48,6 +59,13 @@ export class AudioData {
     return frequencyData
   }
 
+  getMusicalKeyEstimate = () => {
+    // get the median musical key
+    const musicalKey = this.musicalKeys.slice().sort((a, b) => a - b)[Math.floor(this.musicalKeys.length / 2)];
+    console.log({ musicalKey })
+    return musicalKey;
+  }
+
   getBPM = () => {
     // console.log(this.peaks)
     // find the time between peaks
@@ -62,8 +80,7 @@ export class AudioData {
     }
 
     // convert to beats per minute
-    const bpm = 60 * 1000 / averagePeakTime;
-    console.log('bpm', bpm)
+    const bpm = 6000 / averagePeakTime;
     return bpm;
   }
 

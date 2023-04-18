@@ -36,27 +36,21 @@ vec3 color(int i) {
 }
 
 float sampleMusicA() {
-	return 0.5 * (
+	return float(iColorScheme)/255.0 * (
 		texture( iChannel0, vec2( 0.15, 0.25 ) ).x +
 		texture( iChannel0, vec2( 0.30, 0.25 ) ).x);
 }
 
-/*Transform a value from 1-12 into discrete points on the color wheel*/
+/*Transform a value from 0-256 in to rgb colors*/
 vec3 getColorScheme(){
-	vec3 colorScheme[12];
-	colorScheme[0] = vec3(1.0, 0.0, 0.0);
-	colorScheme[1] = vec3(1.0, 0.5, 0.0);
-	colorScheme[2] = vec3(1.0, 1.0, 0.0);
-	colorScheme[3] = vec3(0.0, 1.0, 0.0);
-	colorScheme[4] = vec3(0.0, 1.0, 1.0);
-	colorScheme[5] = vec3(0.0, 0.0, 1.0);
-	colorScheme[6] = vec3(0.5, 0.0, 1.0);
-	colorScheme[7] = vec3(1.0, 0.0, 1.0);
-	colorScheme[8] = vec3(1.0, 0.0, 0.5);
-	colorScheme[9] = vec3(1.0, 0.0, 0.0);
-	colorScheme[10] = vec3(1.0, 0.5, 0.5);
-	colorScheme[11] = vec3(1.0, 1.0, 1.0);
-	return colorScheme[iColorScheme-1];
+	// get the red value
+	float r = float(iColorScheme & 0xFF);
+	// get the green value
+	float g = float((iColorScheme >> 8) & 0xFF);
+	// get the blue value
+	float b = float((iColorScheme >> 16) & 0xFF);
+	// return the color
+	return vec3(r/255.0, g/255.0, b/255.0);
 }
 
 void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
@@ -76,9 +70,10 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
 
 	vec3 fract4 = color(fractal(position/1.6,vec2(0.6+cos(iTime/2.+0.5)/2.0,pulse*.8)));
 
-	vec3 c = color(fractal(position,vec2(0.5+sin(iTime/3.)/2.0,pulse)));
 	vec3 colorFromScheme = getColorScheme();
-  c = mix(c, colorFromScheme, 0.02);
+	vec3 c = color(fractal(position,vec2(0.5+sin(iTime/3.)/2.0,pulse)));
+
+  c = mix(c, colorFromScheme, 0.00025);
 
 	t3=abs(vec4(0.5,0.1,0.5,1.)-t3)*2.;
 

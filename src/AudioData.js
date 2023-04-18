@@ -3,7 +3,7 @@ export class AudioData {
     this.fftSize = fftSize;
     this.context = new AudioContext();
     this.analyser = this.context.createAnalyser();
-    this.loudnesses = new Array(60 * 5).fill(0);
+    this.loudnesses = new Array(500).fill(0);
     this.musicalKeys = new Array(2).fill(0);
     this.peaks = new Array(10).fill(0);
   }
@@ -14,22 +14,29 @@ export class AudioData {
     this.analyser.fftSize = this.fftSize;
     audioInput.connect(this.analyser);
 
-    requestAnimationFrame(this.trackAverageLoudness);
+    requestAnimationFrame(this.trackBeats);
     requestAnimationFrame(this.trackPeaks);
     requestAnimationFrame(this.trackAverageMusicalKey);
   }
 
-  trackAverageLoudness = () => {
+  trackBeats = () => {
     const frequencyData = this.getFrequencyData();
     this.loudnesses.shift();
-    this.loudnesses.push(frequencyData.reduce((a, b) => a + b) / frequencyData.length);
-    requestAnimationFrame(this.trackAverageLoudness);
+    const lowFrequencyLoudness = frequencyData.slice(0, 100).reduce((a, b) => a + b) / 100;
+    const loudness = frequencyData.reduce((a, b) => a + b) / frequencyData.length;
+    const isExcision = lowFrequencyLoudness / loudness < 3;
+    console.log(isExcision)
+    this.loudnesses.push(isExcision? 2 * loudness: loudness);
+
+    requestAnimationFrame(this.trackBeats);
   }
 
   trackAverageMusicalKey = () => {
     const frequencyData = this.getFrequencyData();
     const maxFrequency = frequencyData.reduce((a, b, i) => a[1] > b ? a : [i, b], [0, 0])[0];
-    const musicalKey = maxFrequency % 12;
+    let musicalKey = maxFrequency % 36;
+    // convert musicalKey to a number between 0 and 255
+    musicalKey = Math.floor(musicalKey * 255 / 36);
     this.musicalKeys.shift();
     this.musicalKeys.push(musicalKey);
     requestAnimationFrame(this.trackAverageMusicalKey);
@@ -62,7 +69,7 @@ export class AudioData {
   getMusicalKeyEstimate = () => {
     // get the median musical key
     const musicalKey = this.musicalKeys.slice().sort((a, b) => a - b)[Math.floor(this.musicalKeys.length / 2)];
-    console.log({ musicalKey })
+    // console.log({ musicalKey })
     return musicalKey;
   }
 
@@ -79,10 +86,13 @@ export class AudioData {
       return 2;
     }
 
+   // console.log({ averagePeakTime })
+
     // convert to beats per minute
-    const bpm = 60 / (averagePeakTime / 1000)/40;
-    console.log({ bpm })
-    return bpm;
+    const bpm = 60 / (averagePeakTime / 1000)/50;
+    const val = 255-bpm
+    // console.log({ bpm,val })
+    return bpm
   }
 
   getPeaks = (waveform) => {

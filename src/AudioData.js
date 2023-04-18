@@ -27,7 +27,8 @@ export class AudioData {
   trackPeaks = () => {
     const frequencyData = this.getFrequencyData();
     const loudness = frequencyData.reduce((a, b) => a + b) / frequencyData.length;
-    const loudnessP95 = this.loudnesses.sort()[Math.floor(this.loudnesses.length * 0.75)];
+    // find p99 loudness value without sorting the whole array
+    const loudnessP95 = this.loudnesses.slice().sort((a, b) => a - b)[Math.floor(this.loudnesses.length * 0.50)];
 
     if (loudness > loudnessP95) {
       this.peaks.shift();
@@ -56,13 +57,13 @@ export class AudioData {
     }
     // find the average time between peaks
     const averagePeakTime = peakTimes.reduce((a, b) => a + b) / peakTimes.length;
-    console.log('bpm', bpm)
     if (averagePeakTime > 1000) {
       return 2;
     }
 
     // convert to beats per minute
     const bpm = 60 * 1000 / averagePeakTime;
+    console.log('bpm', bpm)
     return bpm;
   }
 

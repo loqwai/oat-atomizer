@@ -14,7 +14,7 @@ const goldSongData =
     },
     "speed": {
       start: 0.001,
-      end: 0.3,
+      end: 0.001,
     }
   },
   {
@@ -26,12 +26,12 @@ const goldSongData =
       "end": 0.8,
     },
     "speed": {
-      start: 0.2,
-      end: 0.2,
+      start: 0.001,
+      end: 0.001,
     }
   },
   {
-    "build": 128,
+    "beat": 128,
     "endBeat": 192,
     "type": "build",
     "radius": {
@@ -39,8 +39,8 @@ const goldSongData =
       "end": 0.1,
     },
     "speed": {
-      start: 0.2,
-      end: 50.0,
+      start: 0.001,
+      end: 0.3,
     }
 
   },
@@ -53,8 +53,8 @@ const goldSongData =
       "end": 0.1,
     },
     "speed": {
-      start: 50.0,
-      end: 50.0,
+      start: 0.3,
+      end: 0.3,
     }
   },
   {
@@ -129,19 +129,19 @@ export class Gold {
     const currentTime = ((performance.now() - this.startTime) / 1000) + 1;
     const currentBeat = Math.floor(146 * currentTime / 60);
 
-    // find the last song data that is before the current beat
-    const currentSongData = goldSongData.reduce((bestData, data) => {
-      if (data.beat < currentBeat) {
-        return data;
-      }
-      return bestData;
-    }, goldSongData[0]);
+    // find the current song data based on the current beat
+    const currentSongData = goldSongData.find(songData => songData.beat <= currentBeat && currentBeat <= songData.endBeat);
+    if (!currentSongData) {
+      console.log({currentBeat, currentTime});
+      throw new Error("No song data found for current beat");
+    }
     // get the percentage of the way through the current song data
     const currentSongDataStartTime = currentSongData.beat / 146 * 60;
     const currentSongDataEndTime = currentSongData.endBeat / 146 * 60;
 
     //find  the percentage of the way through the current song data
     const percentDone = (currentTime - currentSongDataStartTime)/(currentSongDataEndTime - currentSongDataStartTime);
+    console.log(percentDone);
     return {percentDone, ...currentSongData};
   }
   writeAudioDataToTexture = () => {

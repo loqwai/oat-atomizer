@@ -1,6 +1,5 @@
 import { AudioData } from './AudioData.js';
-import { SlimeMold } from 'http://cdn.jsdelivr.net/gh/loqwai/slime-molds@f267f2ef591f125914efe0c8ac404d740412fef5/src/SlimeMold.js';
-import { ShaderToy } from './ShaderToy.js';
+import { Gold } from './Gold/Gold.js';
 
 const calcTurnRate = (mean) => 0.01 + (1 - (mean / 128))
 const calcVelocityMultiplier = (mean) => 0.01 + (mean / 128)
@@ -9,9 +8,9 @@ const calcSporeSize = (mean) => 1 + (5 * mean / 128)
 /**
  * Map AudioData parameters to SlimeMold parameters
  * @param {AudioData} audioData
- * @param {ShaderToy} shaderToy
+ * @param {ShaderToy} gold
  */
-const adjustParameters = (audioData, shaderToy) => {
+const adjustParameters = (audioData, gold) => {
   const waveform = audioData.getFrequencyData();
   const mean = waveform.reduce((a, b) => a + b, 0) / waveform.length;
 
@@ -19,7 +18,7 @@ const adjustParameters = (audioData, shaderToy) => {
   // slimeMold.setTurnRate(calcTurnRate(mean));
   // slimeMold.setVelocityMultiplier(calcVelocityMultiplier(mean));
 
-  requestAnimationFrame(() => adjustParameters(audioData, shaderToy));
+  requestAnimationFrame(() => adjustParameters(audioData, gold));
 }
 
 const main = async () => {
@@ -33,10 +32,10 @@ const main = async () => {
 
   // const slimeMold = new SlimeMold(canvas);
   // slimeMold.start();
-  const shaderToy = new ShaderToy(canvas, audioData);
-  await shaderToy.start();
+  const gold = new Gold(canvas, audioData);
+  await gold.start();
 
-  requestAnimationFrame(() => adjustParameters(audioData, shaderToy));
+  requestAnimationFrame(() => adjustParameters(audioData, gold));
 }
 
 

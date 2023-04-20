@@ -4,6 +4,7 @@ precision highp float;
 uniform sampler2D iChannel0;
 uniform vec3 iResolution;
 uniform float iTime;
+uniform float RADIUS;
 out vec4 fragColor;
 
 // credit: https://www.shadertoy.com/view/ls3BDH
@@ -12,7 +13,7 @@ out vec4 fragColor;
 
 const float FREQ_RANGE = 64.0;
 const float PI = 3.1415;
-const float RADIUS = 0.6;
+// const float RADIUS = 0.6;
 const float BRIGHTNESS = 0.2;
 const float SPEED = 0.5;
 

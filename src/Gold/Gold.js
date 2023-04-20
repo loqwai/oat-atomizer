@@ -35,6 +35,7 @@ export class Gold {
     this.gl.bindVertexArray(this.state.vao);
     this.gl.uniform3f(this.state.attribs.iResolution, this.canvas.width, this.canvas.height, 1.0);
     this.gl.uniform1f(this.state.attribs.iTime, (performance.now() - this.startTime) / 1000);
+    this.gl.uniform1f(this.state.attribs.RADIUS, 0.5);
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
 
     this._cleanup();
@@ -154,6 +155,7 @@ export class Gold {
     const attribs = {
       iResolution: this.gl.getUniformLocation(program, "iResolution"),
       iTime: this.gl.getUniformLocation(program, "iTime"),
+      RADIUS: this.gl.getUniformLocation(program, "RADIUS"),
     }
 
     this._cleanup()

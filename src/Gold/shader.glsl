@@ -5,6 +5,7 @@ uniform sampler2D iChannel0;
 uniform vec3 iResolution;
 uniform float iTime;
 uniform float RADIUS;
+uniform float SPEED;
 out vec4 fragColor;
 
 // credit: https://www.shadertoy.com/view/ls3BDH
@@ -15,7 +16,7 @@ const float FREQ_RANGE = 64.0;
 const float PI = 3.1415;
 // const float RADIUS = 0.6;
 const float BRIGHTNESS = 0.2;
-const float SPEED = 0.5;
+// const float SPEED = 0.5;
 
 //convert HSV to RGB
 vec3 hsv2rgb(vec3 c){

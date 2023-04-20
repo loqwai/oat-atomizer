@@ -24,9 +24,13 @@ export class AudioData {
     requestAnimationFrame(this.trackAverageLoudness);
   }
 
-  trackPeaks = () => {
+  getLoudness = () => {
     const frequencyData = this.getFrequencyData();
-    const loudness = frequencyData.reduce((a, b) => a + b) / frequencyData.length;
+    return frequencyData.reduce((a, b) => a + b) / frequencyData.length;
+  }
+
+  trackPeaks = () => {
+    const loudness = this.getLoudness();
     // find p99 loudness value without sorting the whole array
     const loudnessP95 = this.loudnesses.slice().sort((a, b) => a - b)[Math.floor(this.loudnesses.length * 0.50)];
 

@@ -6,47 +6,109 @@ const goldSongData =
 [
   {
     "beat": 0,
+    "endBeat": 64,
     "type": "intro",
-    "radius": 0.5,
+    "radius": {
+      "start": 0.8,
+      "end": 0.1,
+    },
+    "speed": {
+      start: 0.001,
+      end: 0.3,
+    }
   },
   {
     "beat": 64,
+    "endBeat": 128,
     "type": "break",
-    "radius": 0.1,
+    "radius": {
+      "start": 0.8,
+      "end": 0.8,
+    },
+    "speed": {
+      start: 0.2,
+      end: 0.2,
+    }
   },
   {
     "build": 128,
+    "endBeat": 192,
     "type": "build",
-    "radius": 0.3,
+    "radius": {
+      "start": 0.8,
+      "end": 0.1,
+    },
+    "speed": {
+      start: 0.2,
+      end: 50.0,
+    }
+
   },
   {
     "beat": 192,
+    "endBeat": 256,
     "type": "chorus",
-    "radius": 0.6,
+    "radius": {
+      "start": 0.1,
+      "end": 0.1,
+    },
+    "speed": {
+      start: 50.0,
+      end: 50.0,
+    }
   },
   {
     "beat": 256,
+    "endBeat": 320,
     "type": "build",
+    "radius": {
+      "start": 0.8,
+      "end": 0.1,
+    },
     "radius": 0.3,
+
   },
   {
     "beat": 288,
+    "endBeat": 352,
     "type": "chorus",
+    "radius": {
+      "start": 0.1,
+      "end": 0.1,
+    },
     "radius": 0.6,
+
   },
   {
     "beat": 352,
+    "endBeat": 416,
     "type": "break",
+    "radius": {
+      "start": 0.8,
+      "end": 0.8,
+    },
     "radius": 0.1,
+
   },
   {
     "beat": 416,
+    "endBeat": 608,
     "type": "build",
+    "radius": {
+      "start": 0.8,
+      "end": 0.1,
+    },
     "radius": 0.3,
+
   },
   {
     "beat": 608,
+    "endBeat": Infinity,
     "type": "chorus",
+    "radius": {
+      "start": 0.1,
+      "end": 0.1,
+    },
     "radius": 0.6,
   }
 ]
@@ -74,7 +136,13 @@ export class Gold {
       }
       return bestData;
     }, goldSongData[0]);
-    return currentSongData;
+    // get the percentage of the way through the current song data
+    const currentSongDataStartTime = currentSongData.beat / 146 * 60;
+    const currentSongDataEndTime = currentSongData.endBeat / 146 * 60;
+
+    //find  the percentage of the way through the current song data
+    const percentDone = (currentTime - currentSongDataStartTime)/(currentSongDataEndTime - currentSongDataStartTime);
+    return {percentDone, ...currentSongData};
   }
   writeAudioDataToTexture = () => {
     const frequencyData = this.audioData.getFrequencyData();
@@ -89,15 +157,18 @@ export class Gold {
 
   frame = () => {
     if (!this.running) return;
-    const current = this.getCurrentSongData();
-    const radius = current.radius;
+    const { speed, radius } = this.getCurrentSongData();
+    const { percentDone } = this.getCurrentSongData();
+    const renderRadius = radius.start + (radius.end - radius.start) * percentDone;
+    const renderSpeed = speed.start + (speed.end - speed.start) * percentDone;
     this.writeAudioDataToTexture();
     this.gl.useProgram(this.state.program);
     this.gl.bindTexture(this.gl.TEXTURE_2D, this.state.audioTexture);
     this.gl.bindVertexArray(this.state.vao);
     this.gl.uniform3f(this.state.attribs.iResolution, this.canvas.width, this.canvas.height, 1.0);
     this.gl.uniform1f(this.state.attribs.iTime, (performance.now() - this.startTime) / 1000);
-    this.gl.uniform1f(this.state.attribs.RADIUS, radius);
+    this.gl.uniform1f(this.state.attribs.RADIUS, renderRadius);
+    this.gl.uniform1f(this.state.attribs.SPEED, renderSpeed * 43);
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
 
     this._cleanup();
@@ -218,6 +289,7 @@ export class Gold {
       iResolution: this.gl.getUniformLocation(program, "iResolution"),
       iTime: this.gl.getUniformLocation(program, "iTime"),
       RADIUS: this.gl.getUniformLocation(program, "RADIUS"),
+      SPEED: this.gl.getUniformLocation(program, "SPEED"),
     }
 
     this._cleanup()

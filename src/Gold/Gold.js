@@ -2,6 +2,54 @@ import { AudioData } from "../AudioData.js";
 import { initAutoResize } from "../resize.js";
 import { createShader, tagObject } from "../shaderUtils.js";
 
+const goldSongData =
+[
+  {
+    "beat": 0,
+    "type": "intro",
+    "radius": 0.5,
+  },
+  {
+    "beat": 64,
+    "type": "break",
+    "radius": 0.1,
+  },
+  {
+    "build": 128,
+    "type": "build",
+    "radius": 0.3,
+  },
+  {
+    "beat": 192,
+    "type": "chorus",
+    "radius": 0.6,
+  },
+  {
+    "beat": 256,
+    "type": "build",
+    "radius": 0.3,
+  },
+  {
+    "beat": 288,
+    "type": "chorus",
+    "radius": 0.6,
+  },
+  {
+    "beat": 352,
+    "type": "break",
+    "radius": 0.1,
+  },
+  {
+    "beat": 416,
+    "type": "build",
+    "radius": 0.3,
+  },
+  {
+    "beat": 608,
+    "type": "chorus",
+    "radius": 0.6,
+  }
+]
 export class Gold {
   /**
    *
@@ -15,7 +63,19 @@ export class Gold {
     this.gl = canvas.getContext("webgl2");
     this.startTime = performance.now();
   }
+  getCurrentSongData = () => {
+    const currentTime = (performance.now() - this.startTime) / 1000;
+    const currentBeat = Math.floor(146 * currentTime / 60);
 
+    // find the last song data that is before the current beat
+    const currentSongData = goldSongData.reduce((bestData, data) => {
+      if (data.beat < currentBeat) {
+        return data;
+      }
+      return bestData;
+    }, goldSongData[0]);
+    return currentSongData;
+  }
   writeAudioDataToTexture = () => {
     const frequencyData = this.audioData.getFrequencyData();
     const waveform = this.audioData.getWaveform();
@@ -27,19 +87,21 @@ export class Gold {
     this._cleanup();
   }
 
-  singleFrame = () => {
+  frame = () => {
     if (!this.running) return;
+    const current = this.getCurrentSongData();
+    const radius = current.radius;
     this.writeAudioDataToTexture();
     this.gl.useProgram(this.state.program);
     this.gl.bindTexture(this.gl.TEXTURE_2D, this.state.audioTexture);
     this.gl.bindVertexArray(this.state.vao);
     this.gl.uniform3f(this.state.attribs.iResolution, this.canvas.width, this.canvas.height, 1.0);
     this.gl.uniform1f(this.state.attribs.iTime, (performance.now() - this.startTime) / 1000);
-    this.gl.uniform1f(this.state.attribs.RADIUS, 0.5);
+    this.gl.uniform1f(this.state.attribs.RADIUS, radius);
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
 
     this._cleanup();
-    requestAnimationFrame(this.singleFrame);
+    requestAnimationFrame(this.frame);
   }
 
   start = async () => {
@@ -64,7 +126,7 @@ export class Gold {
     }
 
     this._cleanup();
-    requestAnimationFrame(this.singleFrame);
+    requestAnimationFrame(this.frame);
   }
 
   stop = () => {

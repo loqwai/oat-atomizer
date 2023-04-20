@@ -32,6 +32,7 @@ const main = async () => {
   await audioData.start();
 
   const canvas = document.querySelector('#visualizer');
+  const analyzer = document.querySelector('#analyzer');
 
   // const slimeMold = new SlimeMold(canvas);
   // slimeMold.start();
@@ -42,6 +43,27 @@ const main = async () => {
   document.onkeydown = () => gold.startTime = performance.now();
 
   requestAnimationFrame(() => adjustParameters(audioData, gold));
+
+  const drawLoudness = () => {
+    /** @type CanvasRenderingContext2D */
+    const ctx = analyzer.getContext('2d');
+    ctx.clearRect(0, 0, analyzer.width, analyzer.height);
+
+    // ctx.fillStyle = 'white';
+    audioData.loudnesses.forEach((loudness, i) => {
+      const x = i / audioData.loudnesses.length * analyzer.width;
+      const height = loudness / 256 * analyzer.height;
+      ctx.fillStyle = 'white';
+      ctx.fillRect(x, analyzer.height, 1, -height);
+      // console.log({loudness, height})
+    })
+    // ctx.fillStyle = 'black';
+    // ctx.fillRect(0, 0, analyzer.width, analyzer.height);
+    // ctx.fillStyle = 'white';
+    // ctx.fillRect(0, 0, mean, 10);
+    requestAnimationFrame(drawLoudness);
+  }
+  drawLoudness();
 }
 
 

@@ -32,7 +32,8 @@ export class AudioData {
   trackPeaks = () => {
     const loudness = this.getLoudness();
     // find p99 loudness value without sorting the whole array
-    const loudnessP95 = this.loudnesses.slice().sort((a, b) => a - b)[Math.floor(this.loudnesses.length * 0.50)];
+    // const loudnessP95 = this.loudnesses.slice().sort((a, b) => a - b)[Math.floor(this.loudnesses.length * 0.50)];
+    // const loudnessP95 = 0;
 
     if (loudness > loudnessP95) {
       this.peaks.shift();

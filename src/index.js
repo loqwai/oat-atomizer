@@ -24,6 +24,9 @@ const adjustParameters = (audioData, gold) => {
 const main = async () => {
   document.onclick = null;
   document.ontouchstart = null;
+  document.onkeydown = null;
+
+
   document.querySelector('h1').remove();
   const audioData = new AudioData();
   await audioData.start();
@@ -35,10 +38,14 @@ const main = async () => {
   const gold = new Gold(canvas, audioData);
   await gold.start();
 
+  document.onclick = () => gold.startTime = performance.now();
+  document.onkeydown = () => gold.startTime = performance.now();
+
   requestAnimationFrame(() => adjustParameters(audioData, gold));
 }
 
 
 document.onclick = main
+document.onkeydown = main
 document.ontouchstart = main
 // main();

@@ -64,7 +64,7 @@ export class Gold {
     this.startTime = performance.now();
   }
   getCurrentSongData = () => {
-    const currentTime = (performance.now() - this.startTime) / 1000;
+    const currentTime = ((performance.now() - this.startTime) / 1000) + 1;
     const currentBeat = Math.floor(146 * currentTime / 60);
 
     // find the last song data that is before the current beat

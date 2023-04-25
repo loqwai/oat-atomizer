@@ -14,7 +14,7 @@ const getFrequencyData = (analyser) => {
 }
 
 export class AudioData {
-  constructor(audio, fftSize = 2048) {
+  constructor(audio, fftSize = 32) {
     this.fftSize = fftSize;
     this.context = new AudioContext();
     this.analyser = new AnalyserNode(this.context);

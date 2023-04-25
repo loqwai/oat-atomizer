@@ -1,4 +1,7 @@
 import { createRealTimeBpmProcessor, getBiquadFilters } from 'realtime-bpm-analyzer'
+import * as _unused from 'meyda'
+
+const {Meyda} = window;
 
 const createFilter = (context, type) => {
   const filter = context.createBiquadFilter();
@@ -79,10 +82,24 @@ export class AudioData {
         stabilizationTime: 20_000, // Default value is 20_000ms after what the library will automatically delete all collected data and restart analysing BPM
       }
     })
-
+    this.setupMeyda(audioInput);
     requestAnimationFrame(this.trackAverageLoudness);
     requestAnimationFrame(this.trackPeaks);
     requestAnimationFrame(this.trackFilteredLoudnesses);
+  }
+
+  setupMeyda = (audioInput) => {
+    console.log({Meyda})
+    const analyzer = Meyda.createMeydaAnalyzer({
+      "audioContext": this.context,
+      "source": audioInput,
+      "bufferSize": 512,
+      "featureExtractors": ["rms", "chroma", "zcr", "energy"],
+      "callback": features => {
+        console.log(features);
+      }
+    });
+    analyzer.start();
   }
 
   trackFilteredLoudnesses = () => {

@@ -54,6 +54,14 @@ export class Gold {
       this.lastLoudness -= 5.0;
     }
 
+    const frequencyData = this.audioData.getFrequencyData()
+    // get the ratio of low frequencies to high frequencies
+    const lowFreqs = frequencyData.slice(0, 300);
+    const highFreqs = frequencyData.slice(300);
+    const lowFreqSum = lowFreqs.reduce((acc, val) => acc + val, 0);
+    const highFreqSum = highFreqs.reduce((acc, val) => acc + val, 0);
+    const freqRatio = lowFreqSum / highFreqSum;
+    // console.log({ freqRatio });
     const loudness = this.lastLoudness / 128;
     const numSamples = 10;
     const averageLoudnesses = loudnesses.slice(loudnesses.length - numSamples).reduce((acc, val) => acc + val, 0) / numSamples;
@@ -63,7 +71,7 @@ export class Gold {
 
     this.knobs.RADIUS = renderRadius * 0.3;
     this.knobs.SPEED = renderSpeed;
-    this.knobs.colorScheme = Math.floor(Date.now() / (1 * 1000)) % 2 ? COLOR_SCHEMES.excelsior : COLOR_SCHEMES.illuminati;
+    this.knobs.colorScheme = freqRatio > 1 ? COLOR_SCHEMES.excelsior : COLOR_SCHEMES.illuminati;
 
 
     // if(key !== tweenedKey) console.log({key, tweenedKey});

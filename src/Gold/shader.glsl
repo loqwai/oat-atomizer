@@ -6,7 +6,8 @@ uniform vec3 iResolution;
 uniform float iTime;
 uniform float RADIUS;
 uniform float SPEED;
-uniform float iColorScheme;
+uniform float colorSchemeIndex;
+uniform mat3 colorScheme;
 out vec4 fragColor;
 
 // credit: https://www.shadertoy.com/view/ls3BDH
@@ -19,22 +20,25 @@ const float PI = 3.1415;
 const float BRIGHTNESS = 0.2;
 // const float SPEED = 0.5;
 
+vec3 value2rgb(float value) {
+	return mix(colorScheme[0], colorScheme[1], fract(value * 0.23 + iTime * 0.12));
+}
+
 //convert HSV to RGB
 vec3 hsv2rgb(vec3 c){
-    // return vec3(1.0, 0.0, 0.0); // uncomment to make it red
     vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
     vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
     return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
 }
-// use iColorScheme to index in to a vector of 12 different colors that are equally spaced around the color wheel
-vec3 getColor(float iColorScheme) {
+// use colorSchemeIndex to index in to a vector of 12 different colors that are equally spaced around the color wheel
+vec3 getColor() {
 		// find mod 12 of the colorScheme
 
-
-		// float hue = iColorScheme % 12.0;
+		// float hue = colorSchemeIndex % 12.0;
 		// get the value after the decimal point and use it as the brightness
-		// float brightness = fract(iColorScheme);
-		return hsv2rgb(vec3(iColorScheme, 1.0, 0.1));
+		// float brightness = fract(colorSchemeIndex);
+		// return hsv2rgb(vec3(colorScheme[0][0], 1.0, 0.1));
+		return colorScheme[0];
 }
 float luma(vec3 color) {
   return dot(color, vec3(0.299, 0.587, 0.114));
@@ -63,7 +67,8 @@ vec3 doHalo(vec2 fragment, float radius) {
 	vec3 col = vec3(0.0);
 
 	float angle = atan(fragment.x, fragment.y);
-	col += hsv2rgb( vec3( ( angle + iTime * 0.25 ) / (PI * 2.0), 1.0, 1.0 ) ) * ring * b;
+	// col += hsv2rgb( vec3( ( angle + iTime * 0.25 ) / (PI * 2.0), 1.0, 1.0 ) ) * ring * b;
+	col += value2rgb(angle) * ring * b;
 
 	float frequency = max(getfrequency_blend(abs(angle / PI)) - 0.02, 0.0);
 	col *= frequency;
@@ -75,7 +80,8 @@ vec3 doHalo(vec2 fragment, float radius) {
 }
 
 vec3 doLine(vec2 fragment, float radius, float x) {
-	vec3 col = hsv2rgb(vec3(x * 0.23 + iTime * 0.12, 1.0, 1.0));
+	// vec3 col = hsv2rgb(vec3(x * 0.23 + iTime * 0.12, 1.0, 1.0));
+	vec3 col = value2rgb(x);
 
 	float freq = abs(fragment.x * 0.5);
 
@@ -92,11 +98,11 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
     fragPos.x *= iResolution.x / iResolution.y;
 
 	vec3 color = vec3(0.0134, 0.052, 0.1);
-	color = getColor(iColorScheme);
+	// color = getColor();
 	// color = mix(color, doHalo(fragPos, RADIUS), 0.5);
 	color += doHalo(fragPos, RADIUS);
 	// mix in the color scheme
-	// color = mix(color, getColor(iColorScheme), 0.5);
+	// color = mix(color, getColor(colorSchemeIndex), 0.5);
 
     float c = cos(iTime * SPEED);
     float s = sin(iTime * SPEED);

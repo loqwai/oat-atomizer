@@ -1,6 +1,15 @@
 import { AudioData } from "../AudioData.js";
 import { initAutoResize } from "../resize.js";
 import { createShader, tagObject } from "../shaderUtils.js";
+
+
+const COLOR_SCHEMES = {
+  // red and orange
+  excelsior: [[1.0, 0.0, 0.0], [0.5, 1.0, 0.0], [0.0, 0.0, 0.0]],
+  // blue and green
+  illuminati: [[0.0, 0.0, 1.0], [0.0, 0.5, 1.0], [0.0, 0.0, 0.0]],
+}
+
 export class Gold {
   /**
    *
@@ -16,10 +25,11 @@ export class Gold {
     this.knobs = {
       RADIUS: 0.5,
       SPEED: 0.5,
-      iColorScheme: 0.5,
+      colorScheme: COLOR_SCHEMES.illuminati,
     }
     this.lastSectionIndex = -1;
     this.lastLoudness = 0;
+    this.COLOR_SCHEMES = COLOR_SCHEMES;
   }
 
   writeAudioDataToTexture = () => {
@@ -36,13 +46,6 @@ export class Gold {
   frame = () => {
     if (!this.running) return;
 
-    const {percentDone, currentSection, previousSection, currentSectionIndex} = audioData;
-    const {key, tempo, mode} = currentSection;
-    const {key: previousKey} = previousSection;
-    const keyDiff = key - previousKey;
-    const tweenedKey = previousKey + (keyDiff * percentDone);
-
-
     const loudnesses = this.audioData.loudnesses;
     const currentLoudness = loudnesses[loudnesses.length - 1];
     if (this.lastLoudness < currentLoudness) {
@@ -56,10 +59,12 @@ export class Gold {
     const averageLoudnesses = loudnesses.slice(loudnesses.length - numSamples).reduce((acc, val) => acc + val, 0) / numSamples;
 
     const renderRadius = loudness;
-    const renderSpeed = averageLoudnesses / 2560;
+    const renderSpeed = averageLoudnesses / 512;
 
     this.knobs.RADIUS = renderRadius * 0.3;
     this.knobs.SPEED = renderSpeed;
+    this.knobs.colorScheme = Math.floor(Date.now() / (1 * 1000)) % 2 ? COLOR_SCHEMES.excelsior : COLOR_SCHEMES.illuminati;
+
 
     // if(key !== tweenedKey) console.log({key, tweenedKey});
     this.writeAudioDataToTexture();
@@ -70,7 +75,7 @@ export class Gold {
     this.gl.uniform1f(this.state.attribs.iTime, loudness * (performance.now() - this.startTime) / 1000);
     this.gl.uniform1f(this.state.attribs.RADIUS, this.knobs.RADIUS);
     this.gl.uniform1f(this.state.attribs.SPEED, this.knobs.SPEED);
-    this.gl.uniform1f(this.state.attribs.iColorScheme, this.knobs.iColorScheme);
+    this.gl.uniformMatrix3fv(this.state.attribs.colorScheme, false, this.knobs.colorScheme.flat());
 
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
     // console.log({mode})
@@ -194,7 +199,7 @@ export class Gold {
       iTime: this.gl.getUniformLocation(program, "iTime"),
       RADIUS: this.gl.getUniformLocation(program, "RADIUS"),
       SPEED: this.gl.getUniformLocation(program, "SPEED"),
-      iColorScheme: this.gl.getUniformLocation(program, "iColorScheme"),
+      colorScheme: this.gl.getUniformLocation(program, "colorScheme"),
     }
 
     this._cleanup()

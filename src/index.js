@@ -39,6 +39,7 @@ const main = async () => {
   // slimeMold.start();
   const gold = new Gold(canvas, audioData);
   await gold.start();
+  window.gold = gold;
 
   document.onclick = () => gold.startTime = performance.now();
   document.onkeydown = () => gold.startTime = performance.now();

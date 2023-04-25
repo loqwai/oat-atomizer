@@ -1,4 +1,4 @@
-{
+export default {
   "meta": {
     "analyzer_version": "4.0.0",
     "platform": "Linux",

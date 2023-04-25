@@ -89,14 +89,17 @@ export class AudioData {
   }
 
   setupMeyda = (audioInput) => {
-    console.log({Meyda})
+    let featureList = Meyda.listAvailableFeatureExtractors();
+    // remove spectralFlux from the featureList bc it crashes
+    featureList = featureList.filter(f => f !== 'spectralFlux');
+    console.log({featureList})
     const analyzer = Meyda.createMeydaAnalyzer({
-      "audioContext": this.context,
-      "source": audioInput,
-      "bufferSize": 512,
-      "featureExtractors": ["rms", "chroma", "zcr", "energy"],
-      "callback": features => {
-        console.log(features);
+      audioContext: this.context,
+      source: audioInput,
+      bufferSize: 512,
+      featureExtractors: featureList,
+      callback: features => {
+        this.features = features;
       }
     });
     analyzer.start();

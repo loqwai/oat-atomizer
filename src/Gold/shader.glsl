@@ -6,8 +6,9 @@ uniform vec3 iResolution;
 uniform float iTime;
 uniform float RADIUS;
 uniform float SPEED;
-uniform float colorSchemeIndex;
-uniform mat3 colorScheme;
+uniform vec2 colorScheme1;
+uniform vec2 colorScheme2;
+uniform float colorSchemeMix;
 out vec4 fragColor;
 
 // credit: https://www.shadertoy.com/view/ls3BDH
@@ -20,26 +21,36 @@ const float PI = 3.1415;
 const float BRIGHTNESS = 0.2;
 // const float SPEED = 0.5;
 
-vec3 value2rgb(float value) {
-	return mix(colorScheme[0], colorScheme[1], fract(value * 0.23 + iTime * 0.12));
-}
-
 //convert HSV to RGB
-vec3 hsv2rgb(vec3 c){
+vec3 hsv2rgb(vec3 c) {
     vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
     vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
     return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
 }
-// use colorSchemeIndex to index in to a vector of 12 different colors that are equally spaced around the color wheel
-vec3 getColor() {
-		// find mod 12 of the colorScheme
 
-		// float hue = colorSchemeIndex % 12.0;
-		// get the value after the decimal point and use it as the brightness
-		// float brightness = fract(colorSchemeIndex);
-		// return hsv2rgb(vec3(colorScheme[0][0], 1.0, 0.1));
-		return colorScheme[0];
+vec3 mixHue(float hue1, float hue2, float amount) {
+	vec3 color1 = hsv2rgb(vec3(hue1, 1.0, 1.0));
+	vec3 color2 = hsv2rgb(vec3(hue2, 1.0, 1.0));
+	return mix(color1, color2, amount);
 }
+
+vec3 value2rgb(float value) {
+	vec3 color1 = mixHue(colorScheme1[0], colorScheme2[0], colorSchemeMix);
+	vec3 color2 = mixHue(colorScheme1[1], colorScheme2[1], colorSchemeMix);
+
+	return mix(color1, color2, fract(value * 0.23 + iTime * 0.12));
+}
+
+// use colorSchemeIndex to index in to a vector of 12 different colors that are equally spaced around the color wheel
+// vec3 getColor() {
+// 		// find mod 12 of the colorScheme
+
+// 		// float hue = colorSchemeIndex % 12.0;
+// 		// get the value after the decimal point and use it as the brightness
+// 		// float brightness = fract(colorSchemeIndex);
+// 		// return hsv2rgb(vec3(colorScheme[0][0], 1.0, 0.1));
+// 		return colorScheme[0];
+// }
 float luma(vec3 color) {
   return dot(color, vec3(0.299, 0.587, 0.114));
 }

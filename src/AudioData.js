@@ -1,20 +1,57 @@
 import { createRealTimeBpmProcessor, getBiquadFilters } from 'realtime-bpm-analyzer'
+
+const createFilter = (context, type) => {
+  const filter = context.createBiquadFilter();
+  filter.type = type;
+  return filter;
+}
+
+const getFrequencyData = (analyser) => {
+  const size = analyser.fftSize / 2;
+  const frequencyData = new Uint8Array(size);
+  analyser.getByteFrequencyData(frequencyData);
+  return frequencyData
+}
+
 export class AudioData {
   constructor(audio, fftSize = 2048) {
     this.fftSize = fftSize;
     this.context = new AudioContext();
-    this.analyser = this.context.createAnalyser();
+    this.analyser = new AnalyserNode(this.context);
     this.loudnesses = new Array(60 * 5).fill(0);
     this.peaks = new Array(10).fill(0);
     this.audio = audio;
+
+    this.filters = {
+      lowpass: createFilter(this.context, 'lowpass'),
+      highpass: createFilter(this.context, 'highpass'),
+      mid: createFilter(this.context, 'bandpass'),
+    }
+
+    this.analysers = {
+      lowpass: new AnalyserNode(this.context, { fftSize: 2048 }),
+      highpass: new AnalyserNode(this.context, { fftSize: 2048 }),
+      mid: new AnalyserNode(this.context, { fftSize: 2048 }),
+    }
+
+    this.loudness = {
+      low: 0,
+      mid: 0,
+      high: 0,
+      overall: 0,
+    }
   }
 
   start = async () => {
     const audioInput = this.audio ? this.context.createMediaElementSource(this.audio) : this.context.createMediaStreamSource(await navigator.mediaDevices.getUserMedia({ audio: true, video: false }));
     this.analyser.fftSize = this.fftSize;
-    audioInput.connect(this.analyser);
 
-    const realtimeAnalyzerNode = await createRealTimeBpmProcessor(this.context, );
+    audioInput.connect(this.analyser);
+    audioInput.connect(this.filters.lowpass).connect(this.analysers.lowpass);;
+    audioInput.connect(this.filters.highpass).connect(this.analysers.highpass);
+    audioInput.connect(this.filters.mid).connect(this.analysers.mid);
+
+    const realtimeAnalyzerNode = await createRealTimeBpmProcessor(this.context,);
     // const {lowpass, highpass} = getBiquadFilters(this.context);
     const gain = this.context.createGain();
     gain.gain.value = 3;
@@ -23,6 +60,8 @@ export class AudioData {
     // console.log({realtimeAnalyzerNode, lowpass, highpass})
     audioInput.connect(gain).connect(filter).connect(realtimeAnalyzerNode)
     // audioInput.connect(this.context.destination);
+
+
 
     realtimeAnalyzerNode.port.onmessage = (event) => {
       if (event.data.message === 'BPM') {
@@ -43,6 +82,15 @@ export class AudioData {
 
     requestAnimationFrame(this.trackAverageLoudness);
     requestAnimationFrame(this.trackPeaks);
+    requestAnimationFrame(this.trackFilteredLoudnesses);
+  }
+
+  trackFilteredLoudnesses = () => {
+    this.loudness.low = getFrequencyData(this.analysers.lowpass).reduce((a, b) => a + b) / this.analysers.lowpass.fftSize;
+    this.loudness.high = getFrequencyData(this.analysers.highpass).reduce((a, b) => a + b) / this.analysers.highpass.fftSize;
+    this.loudness.mid = getFrequencyData(this.analysers.mid).reduce((a, b) => a + b) / this.analysers.mid.fftSize;
+
+    requestAnimationFrame(this.trackFilteredLoudnesses);
   }
 
   trackAverageLoudness = () => {

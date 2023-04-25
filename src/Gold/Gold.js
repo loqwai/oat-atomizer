@@ -2,14 +2,12 @@ import { AudioData } from "../AudioData.js";
 import { initAutoResize } from "../resize.js";
 import { createShader, tagObject } from "../shaderUtils.js";
 
-
 const COLOR_SCHEMES = {
   // red and orange
-  excelsior: [[1.0, 0.0, 0.0], [0.5, 1.0, 0.0], [0.0, 0.0, 0.0]],
+  excelsior: [240, 273],
   // blue and green
-  illuminati: [[0.0, 0.0, 1.0], [0.0, 0.5, 1.0], [0.0, 0.0, 0.0]],
+  illuminati: [0, 30],
 }
-
 export class Gold {
   /**
    *
@@ -65,13 +63,11 @@ export class Gold {
     const loudness = this.lastLoudness / 128;
     const numSamples = 10;
     const averageLoudnesses = loudnesses.slice(loudnesses.length - numSamples).reduce((acc, val) => acc + val, 0) / numSamples;
-
     const renderRadius = loudness;
     const renderSpeed = averageLoudnesses / 512;
-
-    this.knobs.RADIUS = renderRadius * 0.3;
-    this.knobs.SPEED = renderSpeed;
-    this.knobs.colorScheme = freqRatio > 1 ? COLOR_SCHEMES.excelsior : COLOR_SCHEMES.illuminati;
+    this.knobs.RADIUS = this.audioData.loudness.low / 5;
+    this.knobs.SPEED = this.audioData.loudness.mid;
+    this.knobs.colorScheme = (this.audioData.loudness.high / (this.audioData.loudness.low + this.audioData.loudness.high)) || 0.0;
 
 
     // if(key !== tweenedKey) console.log({key, tweenedKey});
@@ -83,7 +79,10 @@ export class Gold {
     this.gl.uniform1f(this.state.attribs.iTime, loudness * (performance.now() - this.startTime) / 1000);
     this.gl.uniform1f(this.state.attribs.RADIUS, this.knobs.RADIUS);
     this.gl.uniform1f(this.state.attribs.SPEED, this.knobs.SPEED);
-    this.gl.uniformMatrix3fv(this.state.attribs.colorScheme, false, this.knobs.colorScheme.flat());
+    this.gl.uniform2fv(this.state.attribs.colorScheme1, COLOR_SCHEMES.excelsior.map(i => i / 360));
+    this.gl.uniform2fv(this.state.attribs.colorScheme2, COLOR_SCHEMES.illuminati.map(i => i / 360));
+    this.gl.uniform1f(this.state.attribs.colorSchemeMix, this.knobs.colorScheme);
+
 
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
     // console.log({mode})
@@ -93,6 +92,9 @@ export class Gold {
   }
 
   start = async () => {
+    setInterval(() => {
+      console.log(this.knobs)
+    }, 1000);
     this.running = true;
     initAutoResize(this.canvas);
 
@@ -207,7 +209,9 @@ export class Gold {
       iTime: this.gl.getUniformLocation(program, "iTime"),
       RADIUS: this.gl.getUniformLocation(program, "RADIUS"),
       SPEED: this.gl.getUniformLocation(program, "SPEED"),
-      colorScheme: this.gl.getUniformLocation(program, "colorScheme"),
+      colorScheme1: this.gl.getUniformLocation(program, "colorScheme1"),
+      colorScheme2: this.gl.getUniformLocation(program, "colorScheme2"),
+      colorSchemeMix: this.gl.getUniformLocation(program, "colorSchemeMix"),
     }
 
     this._cleanup()

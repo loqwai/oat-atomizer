@@ -1,117 +1,6 @@
 import { AudioData } from "../AudioData.js";
 import { initAutoResize } from "../resize.js";
 import { createShader, tagObject } from "../shaderUtils.js";
-
-const goldSongData =
-[
-  {
-    "beat": 0,
-    "endBeat": 64,
-    "type": "intro",
-    "radius": {
-      "start": 0.8,
-      "end": 0.1,
-    },
-    "speed": {
-      start: 0.001,
-      end: 0.001,
-    }
-  },
-  {
-    "beat": 64,
-    "endBeat": 128,
-    "type": "break",
-    "radius": {
-      "start": 0.8,
-      "end": 0.8,
-    },
-    "speed": {
-      start: 0.001,
-      end: 0.001,
-    }
-  },
-  {
-    "beat": 128,
-    "endBeat": 192,
-    "type": "build",
-    "radius": {
-      "start": 0.8,
-      "end": 0.1,
-    },
-    "speed": {
-      start: 0.001,
-      end: 0.3,
-    }
-
-  },
-  {
-    "beat": 192,
-    "endBeat": 256,
-    "type": "chorus",
-    "radius": {
-      "start": 0.1,
-      "end": 0.1,
-    },
-    "speed": {
-      start: 0.3,
-      end: 0.3,
-    }
-  },
-  {
-    "beat": 256,
-    "endBeat": 320,
-    "type": "build",
-    "radius": {
-      "start": 0.8,
-      "end": 0.1,
-    },
-    "radius": 0.3,
-
-  },
-  {
-    "beat": 288,
-    "endBeat": 352,
-    "type": "chorus",
-    "radius": {
-      "start": 0.1,
-      "end": 0.1,
-    },
-    "radius": 0.6,
-
-  },
-  {
-    "beat": 352,
-    "endBeat": 416,
-    "type": "break",
-    "radius": {
-      "start": 0.8,
-      "end": 0.8,
-    },
-    "radius": 0.1,
-
-  },
-  {
-    "beat": 416,
-    "endBeat": 608,
-    "type": "build",
-    "radius": {
-      "start": 0.8,
-      "end": 0.1,
-    },
-    "radius": 0.3,
-
-  },
-  {
-    "beat": 608,
-    "endBeat": Infinity,
-    "type": "chorus",
-    "radius": {
-      "start": 0.1,
-      "end": 0.1,
-    },
-    "radius": 0.6,
-  }
-]
 export class Gold {
   /**
    *
@@ -124,25 +13,15 @@ export class Gold {
     this.audioData = audioData;
     this.gl = canvas.getContext("webgl2");
     this.startTime = performance.now();
-  }
-  getCurrentSongData = () => {
-    const currentTime = ((performance.now() - this.startTime) / 1000) + 1;
-    const currentBeat = Math.floor(146 * currentTime / 60);
-
-    // find the current song data based on the current beat
-    const currentSongData = goldSongData.find(songData => songData.beat <= currentBeat && currentBeat <= songData.endBeat);
-    if (!currentSongData) {
-      console.log({currentBeat, currentTime});
-      throw new Error("No song data found for current beat");
+    this.knobs = {
+      RADIUS: 0.5,
+      SPEED: 0.5,
+      iColorScheme: 0.5,
     }
-    // get the percentage of the way through the current song data
-    const currentSongDataStartTime = currentSongData.beat / 146 * 60;
-    const currentSongDataEndTime = currentSongData.endBeat / 146 * 60;
-
-    //find  the percentage of the way through the current song data
-    const percentDone = (currentTime - currentSongDataStartTime)/(currentSongDataEndTime - currentSongDataStartTime);
-    return {percentDone, ...currentSongData};
+    this.lastSectionIndex = -1;
+    this.lastLoudness = 0;
   }
+
   writeAudioDataToTexture = () => {
     const frequencyData = this.audioData.getFrequencyData();
     const waveform = this.audioData.getWaveform();
@@ -156,19 +35,45 @@ export class Gold {
 
   frame = () => {
     if (!this.running) return;
-    const { speed, radius } = this.getCurrentSongData();
-    const { percentDone } = this.getCurrentSongData();
-    const renderRadius = radius.start + (radius.end - radius.start) * percentDone;
-    const renderSpeed = speed.start + (speed.end - speed.start) * percentDone;
+
+    const {percentDone, currentSection, previousSection, currentSectionIndex} = audioData;
+    const {key, tempo, mode} = currentSection;
+    const {key: previousKey} = previousSection;
+    const keyDiff = key - previousKey;
+    const tweenedKey = previousKey + (keyDiff * percentDone);
+
+
+    const loudnesses = this.audioData.loudnesses;
+    const currentLoudness = loudnesses[loudnesses.length - 1];
+    if (this.lastLoudness < currentLoudness) {
+      this.lastLoudness = currentLoudness;
+    } else {
+      this.lastLoudness -= 5.0;
+    }
+
+    const loudness = this.lastLoudness / 128;
+    const numSamples = 10;
+    const averageLoudnesses = loudnesses.slice(loudnesses.length - numSamples).reduce((acc, val) => acc + val, 0) / numSamples;
+
+    const renderRadius = loudness;
+    const renderSpeed = averageLoudnesses / 2560;
+
+    this.knobs.RADIUS = renderRadius * 0.3;
+    this.knobs.SPEED = renderSpeed;
+
+    // if(key !== tweenedKey) console.log({key, tweenedKey});
     this.writeAudioDataToTexture();
     this.gl.useProgram(this.state.program);
     this.gl.bindTexture(this.gl.TEXTURE_2D, this.state.audioTexture);
     this.gl.bindVertexArray(this.state.vao);
     this.gl.uniform3f(this.state.attribs.iResolution, this.canvas.width, this.canvas.height, 1.0);
-    this.gl.uniform1f(this.state.attribs.iTime, (performance.now() - this.startTime) / 1000);
-    this.gl.uniform1f(this.state.attribs.RADIUS, renderRadius);
-    this.gl.uniform1f(this.state.attribs.SPEED, renderSpeed * 43);
+    this.gl.uniform1f(this.state.attribs.iTime, loudness * (performance.now() - this.startTime) / 1000);
+    this.gl.uniform1f(this.state.attribs.RADIUS, this.knobs.RADIUS);
+    this.gl.uniform1f(this.state.attribs.SPEED, this.knobs.SPEED);
+    this.gl.uniform1f(this.state.attribs.iColorScheme, this.knobs.iColorScheme);
+
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
+    // console.log({mode})
 
     this._cleanup();
     requestAnimationFrame(this.frame);
@@ -289,6 +194,7 @@ export class Gold {
       iTime: this.gl.getUniformLocation(program, "iTime"),
       RADIUS: this.gl.getUniformLocation(program, "RADIUS"),
       SPEED: this.gl.getUniformLocation(program, "SPEED"),
+      iColorScheme: this.gl.getUniformLocation(program, "iColorScheme"),
     }
 
     this._cleanup()

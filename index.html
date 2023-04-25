@@ -5,6 +5,10 @@
 
 <head>
   <style type="text/css">
+    h1, canvas {
+      /* display: none; */
+    }
+
     h1 {
       position: absolute;
       top: 50%;
@@ -37,8 +41,17 @@
   <canvas id="visualizer"></canvas>
   <canvas id="analyzer"></canvas>
 
+  <script type="importmap">
+    {
+      "imports": {
+        "realtime-bpm-analyzer": "https://cdn.skypack.dev/realtime-bpm-analyzer@3.2.0"
+      }
+    }
+  </script>
   <script src="https://greggman.github.io/webgl-lint/webgl-lint.js"></script>
   <script src="src/index.js" type="module"></script>
 </body>
+
+
 
 </html>

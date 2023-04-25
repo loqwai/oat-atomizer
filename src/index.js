@@ -28,6 +28,7 @@ const main = async () => {
 
 
   document.querySelector('h1').remove();
+  const audio = document.querySelector('audio');
   const audioData = new AudioData();
   await audioData.start();
 

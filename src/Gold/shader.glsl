@@ -6,6 +6,7 @@ uniform vec3 iResolution;
 uniform float iTime;
 uniform float RADIUS;
 uniform float SPEED;
+uniform float iColorScheme;
 out vec4 fragColor;
 
 // credit: https://www.shadertoy.com/view/ls3BDH
@@ -25,7 +26,16 @@ vec3 hsv2rgb(vec3 c){
     vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
     return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
 }
+// use iColorScheme to index in to a vector of 12 different colors that are equally spaced around the color wheel
+vec3 getColor(float iColorScheme) {
+		// find mod 12 of the colorScheme
 
+
+		// float hue = iColorScheme % 12.0;
+		// get the value after the decimal point and use it as the brightness
+		// float brightness = fract(iColorScheme);
+		return hsv2rgb(vec3(iColorScheme, 1.0, 0.1));
+}
 float luma(vec3 color) {
   return dot(color, vec3(0.299, 0.587, 0.114));
 }
@@ -82,14 +92,18 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
     fragPos.x *= iResolution.x / iResolution.y;
 
 	vec3 color = vec3(0.0134, 0.052, 0.1);
+	color = getColor(iColorScheme);
+	// color = mix(color, doHalo(fragPos, RADIUS), 0.5);
 	color += doHalo(fragPos, RADIUS);
+	// mix in the color scheme
+	// color = mix(color, getColor(iColorScheme), 0.5);
 
     float c = cos(iTime * SPEED);
     float s = sin(iTime * SPEED);
     vec2 rot = mat2(c,s,-s,c) * fragPos;
 	color += doLine(rot, RADIUS, rot.x);
 
-	color += max(luma(color) - 1.0, 0.0);
+	// color += max(luma(color) - 1.0, 0.0);
 
 	fragColor = vec4(color, 1.0);
 }

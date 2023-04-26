@@ -8,7 +8,7 @@ const COLOR_SCHEMES = {
   // blue and green
   illuminati: [0, 30],
 }
-const FEATURE_HISTORY_LENGTH = 200;
+const FEATURE_HISTORY_LENGTH = 50;
 export class Gold {
   /**
    *
@@ -86,6 +86,7 @@ export class Gold {
     if (!this.audioData.features) return;
     const features = this.audioData.features;
     // iterate over all the keys and values in features
+    const anomalies = {};
     for (const featureName in features) {
       const feature = features[featureName];
       // if the feature is not a number, skip it
@@ -108,7 +109,7 @@ export class Gold {
       const isAnomaly = Math.abs(feature - mean) > variance ? 1: 0;
       this.isAnomalyAtTime[featureName].push(isAnomaly);
 
-      if (this.isAnomalyAtTime[featureName].length > FEATURE_HISTORY_LENGTH) {
+      if (this.isAnomalyAtTime[featureName].length > FEATURE_HISTORY_LENGTH * 2) {
         this.isAnomalyAtTime[featureName].shift();
       }
       // find out if the feature was an anomaly in the previous frame
@@ -118,13 +119,19 @@ export class Gold {
         const isAnomalyAtTime = this.isAnomalyAtTime[featureName];
         const isAnomalyAtTimeMean = isAnomalyAtTime.reduce((a, b) => a + b, 0) / isAnomalyAtTime.length;
         if (isAnomalyAtTimeMean < 0.5) {
-          console.log(`anomaly detected in ${featureName} : ${feature}`);
-
-          // if an anomaly has been detected too many times in a row, reset the history
-
+          // store a value between 0 and 1 representing how much of an anomaly this feature is
+          anomalies[featureName] = (feature - mean) / variance;
         }
       }
+      // if a a feature has been an anomaly for a while, remove it from the map
+      if (this.isAnomalyAtTime[featureName].length > FEATURE_HISTORY_LENGTH * 2 && this.isAnomalyAtTime[featureName].reduce((a, b) => a + b, 0) / this.isAnomalyAtTime[featureName].length < 0.1) {
+        delete this.isAnomalyAtTime[featureName];
+      }
     }
+    // if abnormalities were detected, log them
+    if (Object.keys(anomalies).length > 0) console.log(anomalies)
+    // if there is more than one anomaly, log it
+    if (Object.keys(anomalies).length > 1) console.log("multiple anomalies detected")
   }
   start = async () => {
     setInterval(() => {

@@ -9,6 +9,7 @@ uniform float SPEED;
 uniform vec2 colorScheme1;
 uniform vec2 colorScheme2;
 uniform float colorSchemeMix;
+uniform float anomaly;
 out vec4 fragColor;
 
 // credit: https://www.shadertoy.com/view/ls3BDH
@@ -86,7 +87,6 @@ vec3 doHalo(vec2 fragment, float radius) {
 
 	// Black halo
 	col *= smoothstep(radius * 0.5, radius, dist);
-
 	return col;
 }
 
@@ -119,7 +119,9 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
     float s = sin(iTime * SPEED);
     vec2 rot = mat2(c,s,-s,c) * fragPos;
 	color += doLine(rot, RADIUS, rot.x);
-
+	// mix in a color representing the number of anomalies
+	vec3 anomalyColor = hsv2rgb(vec3((anomaly/ 5.0), 1.0, 1.0));
+	color = mix(color, anomalyColor, 0.5);
 	// color += max(luma(color) - 1.0, 0.0);
 
 	fragColor = vec4(color, 1.0);

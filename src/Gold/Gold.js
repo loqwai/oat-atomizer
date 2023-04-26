@@ -8,7 +8,7 @@ const COLOR_SCHEMES = {
   // blue and green
   illuminati: [0, 30],
 }
-const FEATURE_HISTORY_LENGTH = 50;
+const FEATURE_HISTORY_LENGTH = 100;
 export class Gold {
   /**
    *
@@ -55,7 +55,9 @@ export class Gold {
       this.lastLoudness -= 5.0;
     }
 
+    this.knobs.anomaly = this.knobs.anomaly ||  0;
     this.trackFeatures();
+    this.knobs.anomaly = this.knobs.anomaly % 5;
     const loudness = this.lastLoudness / 128;
     this.knobs.RADIUS = this.audioData.loudness.low / 5;
     this.knobs.SPEED = this.audioData.loudness.mid;
@@ -72,8 +74,7 @@ export class Gold {
     this.gl.uniform2fv(this.state.attribs.colorScheme1, COLOR_SCHEMES.excelsior.map(i => i / 360));
     this.gl.uniform2fv(this.state.attribs.colorScheme2, COLOR_SCHEMES.illuminati.map(i => i / 360));
     this.gl.uniform1f(this.state.attribs.colorSchemeMix, this.knobs.colorScheme);
-
-
+    this.gl.uniform1f(this.state.attribs.anomaly, this.knobs.anomaly);
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
     // console.log({mode})
 
@@ -84,7 +85,8 @@ export class Gold {
   // keep a running average, mean, and variance of the features
   trackFeatures = () => {
     if (!this.audioData.features) return;
-    const features = this.audioData.features;
+    const features = {...this.audioData.features, ...this.audioData.loudness};
+
     // iterate over all the keys and values in features
     const anomalies = {};
     for (const featureName in features) {
@@ -106,7 +108,7 @@ export class Gold {
       // detect if this feature is an anomaly
 
       this.isAnomalyAtTime[featureName] = this.isAnomalyAtTime[featureName] || [];
-      const isAnomaly = Math.abs(feature - mean) > variance ? 1: 0;
+      const isAnomaly = Math.abs(feature - mean) > variance * 2 ? 1: 0;
       this.isAnomalyAtTime[featureName].push(isAnomaly);
 
       if (this.isAnomalyAtTime[featureName].length > FEATURE_HISTORY_LENGTH * 2) {
@@ -124,19 +126,22 @@ export class Gold {
         }
       }
       // if a a feature has been an anomaly for a while, remove it from the map
-      if (this.isAnomalyAtTime[featureName].length > FEATURE_HISTORY_LENGTH * 2 && this.isAnomalyAtTime[featureName].reduce((a, b) => a + b, 0) / this.isAnomalyAtTime[featureName].length < 0.1) {
+      if (this.isAnomalyAtTime[featureName].length > FEATURE_HISTORY_LENGTH * 2 && this.isAnomalyAtTime[featureName].reduce((a, b) => a + b, 0) / this.isAnomalyAtTime[featureName].length > 0.1) {
         delete this.isAnomalyAtTime[featureName];
       }
     }
     // if abnormalities were detected, log them
     if (Object.keys(anomalies).length > 0) console.log(anomalies)
     // if there is more than one anomaly, log it
-    if (Object.keys(anomalies).length > 1) console.log("multiple anomalies detected")
+    if (Object.keys(anomalies).length > 1) {
+      console.log("multiple anomalies detected")
+      this.knobs.anomaly += 1;
+    }
   }
   start = async () => {
-    setInterval(() => {
-      console.log(this.knobs)
-    }, 1000);
+    // setInterval(() => {
+    //   console.log(this.knobs)
+    // }, 1000);
     this.running = true;
     initAutoResize(this.canvas);
 
@@ -254,6 +259,7 @@ export class Gold {
       colorScheme1: this.gl.getUniformLocation(program, "colorScheme1"),
       colorScheme2: this.gl.getUniformLocation(program, "colorScheme2"),
       colorSchemeMix: this.gl.getUniformLocation(program, "colorSchemeMix"),
+      anomaly: this.gl.getUniformLocation(program, "anomaly"),
     }
 
     this._cleanup()

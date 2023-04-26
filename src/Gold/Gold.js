@@ -8,6 +8,7 @@ const COLOR_SCHEMES = {
   // blue and green
   illuminati: [0, 30],
 }
+const FEATURE_HISTORY_LENGTH = 10;
 export class Gold {
   /**
    *
@@ -19,6 +20,7 @@ export class Gold {
     this.canvas = canvas;
     this.audioData = audioData;
     this.gl = canvas.getContext("webgl2");
+    this.featureHistory = {};
     this.startTime = performance.now();
     this.knobs = {
       RADIUS: 0.5,
@@ -52,25 +54,12 @@ export class Gold {
       this.lastLoudness -= 5.0;
     }
 
-    const frequencyData = this.audioData.getFrequencyData()
-    // get the ratio of low frequencies to high frequencies
-    const lowFreqs = frequencyData.slice(0, 300);
-    const highFreqs = frequencyData.slice(300);
-    const lowFreqSum = lowFreqs.reduce((acc, val) => acc + val, 0);
-    const highFreqSum = highFreqs.reduce((acc, val) => acc + val, 0);
-    const freqRatio = lowFreqSum / highFreqSum;
-    // console.log({ freqRatio });
+    this.trackFeatures();
     const loudness = this.lastLoudness / 128;
-    const numSamples = 10;
-    const averageLoudnesses = loudnesses.slice(loudnesses.length - numSamples).reduce((acc, val) => acc + val, 0) / numSamples;
-    const renderRadius = loudness;
-    const renderSpeed = averageLoudnesses / 512;
     this.knobs.RADIUS = this.audioData.loudness.low / 5;
     this.knobs.SPEED = this.audioData.loudness.mid;
     this.knobs.colorScheme = (this.audioData.loudness.high / (this.audioData.loudness.low + this.audioData.loudness.high)) || 0.0;
 
-
-    // if(key !== tweenedKey) console.log({key, tweenedKey});
     this.writeAudioDataToTexture();
     this.gl.useProgram(this.state.program);
     this.gl.bindTexture(this.gl.TEXTURE_2D, this.state.audioTexture);
@@ -91,6 +80,34 @@ export class Gold {
     requestAnimationFrame(this.frame);
   }
 
+  // keep a running average, mean, and variance of the features
+  trackFeatures = () => {
+    if (!this.audioData.features) return;
+    const features = this.audioData.features;
+    console.log({features})
+    // iterate over all the keys and values in features
+    for (const featureName in features) {
+      const feature = features[featureName];
+      // if the feature is not a number, skip it
+      if (typeof feature !== "number") continue;
+      // if the feature is not in the map, add it
+      this.featureHistory[featureName] = this.featureHistory[featureName] || []
+      // add the feature to the history
+      this.featureHistory[featureName].push(feature);
+      // if the history is too long, remove the oldest value
+      if (this.featureHistory[featureName].length > FEATURE_HISTORY_LENGTH) {
+        this.featureHistory[featureName].shift();
+      }
+      if (this.featureHistory[featureName].length < FEATURE_HISTORY_LENGTH) continue;
+      // calculate the mean and variance
+      const mean = this.featureHistory[featureName].reduce((a, b) => a + b, 0) / this.featureHistory[featureName].length;
+      const variance = this.featureHistory[featureName].reduce((a, b) => a + (b - mean) ** 2, 0) / this.featureHistory[featureName].length;
+      // detect if this feature is an anomaly
+      if (Math.abs(feature - mean) > variance) {
+        console.log(`anomaly detected in ${featureName} with mean ${mean} and variance ${variance}`);
+      }
+    }
+  }
   start = async () => {
     setInterval(() => {
       console.log(this.knobs)

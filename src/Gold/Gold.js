@@ -8,7 +8,7 @@ const COLOR_SCHEMES = {
   // blue and green
   illuminati: [0, 30],
 }
-const FEATURE_HISTORY_LENGTH = 10;
+const FEATURE_HISTORY_LENGTH = 200;
 export class Gold {
   /**
    *
@@ -21,6 +21,7 @@ export class Gold {
     this.audioData = audioData;
     this.gl = canvas.getContext("webgl2");
     this.featureHistory = {};
+    this.isAnomalyAtTime = {};
     this.startTime = performance.now();
     this.knobs = {
       RADIUS: 0.5,
@@ -84,7 +85,6 @@ export class Gold {
   trackFeatures = () => {
     if (!this.audioData.features) return;
     const features = this.audioData.features;
-    console.log({features})
     // iterate over all the keys and values in features
     for (const featureName in features) {
       const feature = features[featureName];
@@ -103,8 +103,26 @@ export class Gold {
       const mean = this.featureHistory[featureName].reduce((a, b) => a + b, 0) / this.featureHistory[featureName].length;
       const variance = this.featureHistory[featureName].reduce((a, b) => a + (b - mean) ** 2, 0) / this.featureHistory[featureName].length;
       // detect if this feature is an anomaly
-      if (Math.abs(feature - mean) > variance) {
-        console.log(`anomaly detected in ${featureName} with mean ${mean} and variance ${variance}`);
+
+      this.isAnomalyAtTime[featureName] = this.isAnomalyAtTime[featureName] || [];
+      const isAnomaly = Math.abs(feature - mean) > variance ? 1: 0;
+      this.isAnomalyAtTime[featureName].push(isAnomaly);
+
+      if (this.isAnomalyAtTime[featureName].length > FEATURE_HISTORY_LENGTH) {
+        this.isAnomalyAtTime[featureName].shift();
+      }
+      // find out if the feature was an anomaly in the previous frame
+      const wasPreviousAnomaly = this.isAnomalyAtTime[featureName][this.isAnomalyAtTime[featureName].length - 2] || 0;
+      if (isAnomaly && !wasPreviousAnomaly) {
+        // find out if the feature is usually an anomaly
+        const isAnomalyAtTime = this.isAnomalyAtTime[featureName];
+        const isAnomalyAtTimeMean = isAnomalyAtTime.reduce((a, b) => a + b, 0) / isAnomalyAtTime.length;
+        if (isAnomalyAtTimeMean < 0.5) {
+          console.log(`anomaly detected in ${featureName} : ${feature}`);
+
+          // if an anomaly has been detected too many times in a row, reset the history
+
+        }
       }
     }
   }

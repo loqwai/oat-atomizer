@@ -86,7 +86,7 @@ export class Gold {
   trackFeatures = () => {
     if (!this.audioData.features) return;
     const features = {...this.audioData.features, ...this.audioData.loudness};
-
+    console.log({features})
     // iterate over all the keys and values in features
     const anomalies = {};
     for (const featureName in features) {
@@ -138,6 +138,7 @@ export class Gold {
       this.knobs.anomaly += 1;
     }
   }
+
   start = async () => {
     // setInterval(() => {
     //   console.log(this.knobs)

@@ -27,6 +27,7 @@ export class Gold {
       RADIUS: 0.5,
       SPEED: 0.5,
       colorScheme: COLOR_SCHEMES.illuminati,
+      energy:0,
     }
     this.lastSectionIndex = -1;
     this.lastLoudness = 0;
@@ -46,7 +47,7 @@ export class Gold {
 
   frame = () => {
     if (!this.running) return;
-
+    this.trackFeatures();
     const loudnesses = this.audioData.loudnesses;
     const currentLoudness = loudnesses[loudnesses.length - 1];
     if (this.lastLoudness < currentLoudness) {
@@ -56,11 +57,11 @@ export class Gold {
     }
 
     this.knobs.anomaly = this.knobs.anomaly ||  0;
-    this.trackFeatures();
+
     this.knobs.anomaly = this.knobs.anomaly % 5;
     const loudness = this.lastLoudness / 128;
     this.knobs.RADIUS = this.audioData.loudness.low / 5;
-    this.knobs.SPEED = this.audioData.loudness.mid;
+    this.knobs.SPEED = this.audioData.features?.spectralFlatness * 2 || 0;
     this.knobs.colorScheme = (this.audioData.loudness.high / (this.audioData.loudness.low + this.audioData.loudness.high)) || 0.0;
 
     this.writeAudioDataToTexture();
@@ -75,6 +76,20 @@ export class Gold {
     this.gl.uniform2fv(this.state.attribs.colorScheme2, COLOR_SCHEMES.illuminati.map(i => i / 360));
     this.gl.uniform1f(this.state.attribs.colorSchemeMix, this.knobs.colorScheme);
     this.gl.uniform1f(this.state.attribs.anomaly, this.knobs.anomaly);
+    this.gl.uniform1f(this.state.attribs.energy, this.knobs.energy || 0);
+
+    this.gl.uniform1f(this.state.attribs.spectralSlope, this.knobs.spectraSlope || 0);
+    this.gl.uniform1f(this.state.attribs.spectralFlatness, this.knobs.spectralFlatness || 0);
+    this.gl.uniform1f(this.state.attribs.spectralCentroid, this.knobs.spectralCentroid || 0);
+    this.gl.uniform1f(this.state.attribs.spectralRolloff, this.knobs.spectralRolloff  || 0);
+    this.gl.uniform1f(this.state.attribs.spectralSpread, this.knobs.spectralSpread || 0);
+    this.gl.uniform1f(this.state.attribs.spectralSkewness, this.knobs.spectralSkewness || 0);
+    this.gl.uniform1f(this.state.attribs.spectralKurtosis, this.knobs.spectralKurtosis || 0);
+    this.gl.uniform1f(this.state.attribs.zcr, this.knobs.zcr || 0);
+    this.gl.uniform1f(this.state.attribs.perceptualSpread, this.knobs.perceptualSpread || 0);
+    this.gl.uniform1f(this.state.attribs.perceptualSharpness, this.knobs.perceptualSharpness || 0);
+
+
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
     // console.log({mode})
 
@@ -85,14 +100,14 @@ export class Gold {
   // keep a running average, mean, and variance of the features
   trackFeatures = () => {
     if (!this.audioData.features) return;
-    const features = {...this.audioData.features, ...this.audioData.loudness};
-    console.log({features})
+    const features = {...this.audioData.features};
     // iterate over all the keys and values in features
     const anomalies = {};
     for (const featureName in features) {
       const feature = features[featureName];
       // if the feature is not a number, skip it
       if (typeof feature !== "number") continue;
+      this.knobs[featureName] = feature || 0;
       // if the feature is not in the map, add it
       this.featureHistory[featureName] = this.featureHistory[featureName] || []
       // add the feature to the history
@@ -101,6 +116,7 @@ export class Gold {
       if (this.featureHistory[featureName].length > FEATURE_HISTORY_LENGTH) {
         this.featureHistory[featureName].shift();
       }
+
       if (this.featureHistory[featureName].length < FEATURE_HISTORY_LENGTH) continue;
       // calculate the mean and variance
       const mean = this.featureHistory[featureName].reduce((a, b) => a + b, 0) / this.featureHistory[featureName].length;
@@ -130,8 +146,9 @@ export class Gold {
         delete this.isAnomalyAtTime[featureName];
       }
     }
+    console.log(this.knobs)
     // if abnormalities were detected, log them
-    if (Object.keys(anomalies).length > 0) console.log(anomalies)
+    if (Object.keys(anomalies).length > 0) console.log({anomalies})
     // if there is more than one anomaly, log it
     if (Object.keys(anomalies).length > 1) {
       console.log("multiple anomalies detected")
@@ -140,9 +157,6 @@ export class Gold {
   }
 
   start = async () => {
-    // setInterval(() => {
-    //   console.log(this.knobs)
-    // }, 1000);
     this.running = true;
     initAutoResize(this.canvas);
 
@@ -260,6 +274,18 @@ export class Gold {
       colorScheme1: this.gl.getUniformLocation(program, "colorScheme1"),
       colorScheme2: this.gl.getUniformLocation(program, "colorScheme2"),
       colorSchemeMix: this.gl.getUniformLocation(program, "colorSchemeMix"),
+      energy: this.gl.getUniformLocation(program, "energy"),
+      spectralSlope: this.gl.getUniformLocation(program, "spectralSlope"),
+      spectralCentroid: this.gl.getUniformLocation(program, "spectralCentroid"),
+      spectralRolloff: this.gl.getUniformLocation(program, "spectralRolloff"),
+      spectralFlatness: this.gl.getUniformLocation(program, "spectralFlatness"),
+      spectralSpread: this.gl.getUniformLocation(program, "spectralSpread"),
+      spectralSkewness: this.gl.getUniformLocation(program, "spectralSkewness"),
+      spectralKurtosis: this.gl.getUniformLocation(program, "spectralKurtosis"),
+      zcr: this.gl.getUniformLocation(program, "zcr"),
+      perceptualSpread: this.gl.getUniformLocation(program, "perceptualSpread"),
+      perceptualSharpness: this.gl.getUniformLocation(program, "perceptualSharpness"),
+
       anomaly: this.gl.getUniformLocation(program, "anomaly"),
     }
 

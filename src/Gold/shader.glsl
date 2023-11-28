@@ -10,6 +10,17 @@ uniform vec2 colorScheme1;
 uniform vec2 colorScheme2;
 uniform float colorSchemeMix;
 uniform float anomaly;
+
+uniform float energy;
+uniform float spectralFlatness;
+uniform float spectralCentroid;
+uniform float spectralSpread;
+uniform float spectralSkewness;
+uniform float spectralKurtosis;
+uniform float spectralCrest;
+uniform float spectralSlope;
+uniform float spectralRolloff;
+
 out vec4 fragColor;
 
 // credit: https://www.shadertoy.com/view/ls3BDH

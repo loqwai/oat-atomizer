@@ -65,7 +65,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
     for (float i = 0.0; i < anomaly + 4.; i++) {
         uv = fract(uv * 1.5) - 0.5;
 
-         float d = length(uv) * exp(-length(uv0) * smoothedEnergy*2.); // Use energy to control the intensity
+         float d = length(uv) * exp(-length(uv0) * smoothedEnergy*5.); // Use energy to control the intensity
 				float modulatedTime = iTime * bpm / 60.0f;
         vec3 col = palette(length(uv0) + i*.4 + modulatedTime*.4);
 

@@ -73,7 +73,7 @@ export class AudioData {
       for(const b of event.data.result?.bpm || []) {
         bpm += b.tempo;
       }
-      bpm /= event.data.result.bpm.length;
+      bpm /= event.data.result?.bpm?.length || 0;
       if(event.data.message === 'BPM') return this.bpm = bpm;
       if(event.data.message === 'BPM_STABLE') return this.stableBpm = bpm;
       console.log(event.data)

@@ -1,25 +1,5 @@
 import { AudioData } from './AudioData.js';
-import { Gold } from './Gold/Gold.js';
-
-const calcTurnRate = (mean) => 0.01 + (1 - (mean / 128))
-const calcVelocityMultiplier = (mean) => 0.01 + (mean / 128)
-const calcSporeSize = (mean) => 1 + (5 * mean / 128)
-
-/**
- * Map AudioData parameters to SlimeMold parameters
- * @param {AudioData} audioData
- * @param {ShaderToy} gold
- */
-const adjustParameters = (audioData, gold) => {
-  const waveform = audioData.getFrequencyData();
-  const mean = waveform.reduce((a, b) => a + b, 0) / waveform.length;
-
-  // slimeMold.setSporeSize(calcSporeSize(mean));
-  // slimeMold.setTurnRate(calcTurnRate(mean));
-  // slimeMold.setVelocityMultiplier(calcVelocityMultiplier(mean));
-
-  requestAnimationFrame(() => adjustParameters(audioData, gold));
-}
+import { Visualizer } from './Visualizer.js';
 
 const main = async () => {
   document.onclick = null;
@@ -37,14 +17,14 @@ const main = async () => {
 
   // const slimeMold = new SlimeMold(canvas);
   // slimeMold.start();
-  const gold = new Gold(canvas, audioData);
-  await gold.start();
-  window.gold = gold;
+  const viz = new Visualizer(canvas, audioData);
+  await viz.start();
+  window.gold = viz;
 
-  document.onclick = () => gold.startTime = performance.now();
-  document.onkeydown = () => gold.startTime = performance.now();
+  document.onclick = () => viz.startTime = performance.now();
+  document.onkeydown = () => viz.startTime = performance.now();
 
-  requestAnimationFrame(() => adjustParameters(audioData, gold));
+  requestAnimationFrame(() => adjustParameters(audioData, viz));
 
   /**
    * @type {CanvasRenderingContext2D}
@@ -55,18 +35,12 @@ const main = async () => {
     /** @type CanvasRenderingContext2D */
     ctx.clearRect(0, 0, analyzer.width, analyzer.height);
 
-    // ctx.fillStyle = 'white';
     audioData.loudnesses.forEach((loudness, i) => {
       const x = i / audioData.loudnesses.length * analyzer.width;
       const height = loudness / 256 * analyzer.height / 2;
       ctx.fillStyle = 'white';
       ctx.fillRect(x, analyzer.height, 1, -height);
-      // console.log({loudness, height})
     })
-    // ctx.fillStyle = 'black';
-    // ctx.fillRect(0, 0, analyzer.width, analyzer.height);
-    // ctx.fillStyle = 'white';
-    // ctx.fillRect(0, 0, mean, 10);
     requestAnimationFrame(drawLoudness);
   }
   requestAnimationFrame(drawLoudness);

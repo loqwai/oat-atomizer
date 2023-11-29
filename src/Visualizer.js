@@ -1,6 +1,6 @@
-import { AudioData } from "../AudioData.js";
-import { initAutoResize } from "../resize.js";
-import { createShader, tagObject } from "../shaderUtils.js";
+import { AudioData } from "./AudioData.js";
+import { initAutoResize } from "./resize.js";
+import { createShader, tagObject } from "./shaderUtils.js";
 
 const COLOR_SCHEMES = {
   // red and orange
@@ -9,7 +9,7 @@ const COLOR_SCHEMES = {
   illuminati: [0, 30],
 }
 const FEATURE_HISTORY_LENGTH = 100;
-export class Gold {
+export class Visualizer {
   /**
    *
    * @param {HTMLCanvasElement} canvas
@@ -301,9 +301,10 @@ export class Gold {
  */
 const createRenderProgram = async (gl) => {
   const program = gl.createProgram()
-
+  const shader = new URLSearchParams(window.location.search).get("shader");
+  console.log({shader})
   gl.attachShader(program, await createShader(gl, gl.VERTEX_SHADER, `/src/shaders/generic-vertex.glsl`))
-  gl.attachShader(program, await createShader(gl, gl.FRAGMENT_SHADER, `/src/Gold/shader.glsl`))
+  gl.attachShader(program, await createShader(gl, gl.FRAGMENT_SHADER, `/src/shaders/${shader}.glsl`))
 
   gl.linkProgram(program);
 

@@ -199,8 +199,4 @@ const bindRenderBuffer = (gl, program, vao, texturePositions, textureCoords) => 
   gl.bindBuffer(gl.ARRAY_BUFFER, texturePositions);
   gl.enableVertexAttribArray(positionAttrib);
   gl.vertexAttribPointer(positionAttrib, 2, gl.FLOAT, false, 0, 0);
-
-  // gl.bindBuffer(gl.ARRAY_BUFFER, textureCoords);
-  // gl.enableVertexAttribArray(texCoordsAttrib);
-  // gl.vertexAttribPointer(texCoordsAttrib, 2, gl.FLOAT, false, 0, 0);
 }

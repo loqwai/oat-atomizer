@@ -68,7 +68,7 @@ float luma(vec3 color) {
 }
 
 float getfrequency(float x) {
-	return texture(iChannel0, vec2(floor(x * FREQ_RANGE + 1.0) / FREQ_RANGE, 0.25)).x + 0.06;
+	return texture(iChannel0, vec2(floor(x * FREQ_RANGE + 1.0) / FREQ_RANGE, 0.25)).x + spectralSpread;
 }
 
 float getfrequency_smooth(float x) {

@@ -2,12 +2,6 @@ import { AudioData } from "./AudioData.js";
 import { initAutoResize } from "./resize.js";
 import { createShader, tagObject } from "./shaderUtils.js";
 
-const COLOR_SCHEMES = {
-  // red and orange
-  excelsior: [240, 273],
-  // blue and green
-  illuminati: [0, 30],
-}
 const FEATURE_HISTORY_LENGTH = 100;
 export class Visualizer {
   /**
@@ -24,14 +18,9 @@ export class Visualizer {
     this.isAnomalyAtTime = {};
     this.startTime = performance.now();
     this.knobs = {
-      RADIUS: 0.5,
-      SPEED: 0.5,
-      colorScheme: COLOR_SCHEMES.illuminati,
-      energy:0,
     }
     this.lastSectionIndex = -1;
     this.lastLoudness = 0;
-    this.COLOR_SCHEMES = COLOR_SCHEMES;
   }
 
   writeAudioDataToTexture = () => {
@@ -59,10 +48,8 @@ export class Visualizer {
     this.knobs.anomaly = this.knobs.anomaly ||  0;
 
     this.knobs.anomaly = this.knobs.anomaly % 5;
-    const loudness = this.lastLoudness / 128;
     this.knobs.RADIUS = this.audioData.loudness.low / 5;
     this.knobs.SPEED = this.audioData.features?.spectralFlatness * 2 || 0;
-    this.knobs.colorScheme = (this.audioData.loudness.high / (this.audioData.loudness.low + this.audioData.loudness.high)) || 0.0;
 
     this.writeAudioDataToTexture();
     this.gl.useProgram(this.state.program);
@@ -70,11 +57,6 @@ export class Visualizer {
     this.gl.bindVertexArray(this.state.vao);
     this.gl.uniform3f(this.state.attribs.iResolution, this.canvas.width, this.canvas.height, 1.0);
     this.gl.uniform1f(this.state.attribs.iTime, (performance.now() - this.startTime) / 1000);
-    this.gl.uniform1f(this.state.attribs.RADIUS, this.knobs.RADIUS);
-    this.gl.uniform1f(this.state.attribs.SPEED, this.knobs.SPEED);
-    this.gl.uniform2fv(this.state.attribs.colorScheme1, COLOR_SCHEMES.excelsior.map(i => i / 360));
-    this.gl.uniform2fv(this.state.attribs.colorScheme2, COLOR_SCHEMES.illuminati.map(i => i / 360));
-    this.gl.uniform1f(this.state.attribs.colorSchemeMix, this.knobs.colorScheme);
     this.gl.uniform1f(this.state.attribs.anomaly, this.knobs.anomaly);
     this.gl.uniform1f(this.state.attribs.energy, this.knobs.energy || 0);
 
@@ -270,11 +252,6 @@ export class Visualizer {
     const attribs = {
       iResolution: this.gl.getUniformLocation(program, "iResolution"),
       iTime: this.gl.getUniformLocation(program, "iTime"),
-      RADIUS: this.gl.getUniformLocation(program, "RADIUS"),
-      SPEED: this.gl.getUniformLocation(program, "SPEED"),
-      colorScheme1: this.gl.getUniformLocation(program, "colorScheme1"),
-      colorScheme2: this.gl.getUniformLocation(program, "colorScheme2"),
-      colorSchemeMix: this.gl.getUniformLocation(program, "colorSchemeMix"),
       energy: this.gl.getUniformLocation(program, "energy"),
       spectralSlope: this.gl.getUniformLocation(program, "spectralSlope"),
       spectralCentroid: this.gl.getUniformLocation(program, "spectralCentroid"),

@@ -69,7 +69,7 @@ export class Visualizer {
     this.gl.bindTexture(this.gl.TEXTURE_2D, this.state.audioTexture);
     this.gl.bindVertexArray(this.state.vao);
     this.gl.uniform3f(this.state.attribs.iResolution, this.canvas.width, this.canvas.height, 1.0);
-    this.gl.uniform1f(this.state.attribs.iTime, loudness * (performance.now() - this.startTime) / 1000);
+    this.gl.uniform1f(this.state.attribs.iTime, (performance.now() - this.startTime) / 1000);
     this.gl.uniform1f(this.state.attribs.RADIUS, this.knobs.RADIUS);
     this.gl.uniform1f(this.state.attribs.SPEED, this.knobs.SPEED);
     this.gl.uniform2fv(this.state.attribs.colorScheme1, COLOR_SCHEMES.excelsior.map(i => i / 360));

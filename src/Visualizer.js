@@ -82,6 +82,7 @@ export class Visualizer {
     this.gl.uniform1f(this.state.attribs.spectralFlatness, this.knobs.spectralFlatness || 0);
     this.gl.uniform1f(this.state.attribs.spectralCentroid, this.knobs.spectralCentroid || 0);
     this.gl.uniform1f(this.state.attribs.spectralRolloff, this.knobs.spectralRolloff  || 0);
+    this.gl.uniform1f(this.state.attribs.spectralCrest, this.knobs.spectralCrest || 0);
     this.gl.uniform1f(this.state.attribs.spectralSpread, this.knobs.spectralSpread || 0);
     this.gl.uniform1f(this.state.attribs.spectralSkewness, this.knobs.spectralSkewness || 0);
     this.gl.uniform1f(this.state.attribs.spectralKurtosis, this.knobs.spectralKurtosis || 0);
@@ -277,6 +278,7 @@ export class Visualizer {
       energy: this.gl.getUniformLocation(program, "energy"),
       spectralSlope: this.gl.getUniformLocation(program, "spectralSlope"),
       spectralCentroid: this.gl.getUniformLocation(program, "spectralCentroid"),
+      spectralCrest: this.gl.getUniformLocation(program, "spectralCrest"),
       spectralRolloff: this.gl.getUniformLocation(program, "spectralRolloff"),
       spectralFlatness: this.gl.getUniformLocation(program, "spectralFlatness"),
       spectralSpread: this.gl.getUniformLocation(program, "spectralSpread"),

@@ -51,7 +51,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
         d = sin(d * (8. + spectralSkewness * 0.5) + iTime) / 8.; // Modify pattern with spectral skewness
         d = abs(d);
 
-        d = pow(0.01 / d, 1.2 + spectralKurtosis * 0.1); // Use spectral kurtosis to control the sharpness
+        d = pow(0.01 / d, 1.2 + spectralKurtosis * 0.01); // Use spectral kurtosis to control the sharpness
 
         finalColor += col * d * (1.0 + spectralCrest * 0.1); // Modify color intensity based on spectral crest
     }

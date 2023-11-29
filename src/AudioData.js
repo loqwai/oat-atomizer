@@ -6,6 +6,7 @@ const {Meyda} = window;
 const createFilter = (context, type) => {
   const filter = context.createBiquadFilter();
   filter.type = type;
+  filter.frequency.value = 100;
   return filter;
 }
 
@@ -67,12 +68,15 @@ export class AudioData {
 
 
     realtimeAnalyzerNode.port.onmessage = (event) => {
-      if (event.data.message === 'BPM') {
-        // console.log('BPM', event.data.result);
+      let bpm = 0
+      // if(!event.data.result?.bpm?.length) return;
+      for(const b of event.data.result?.bpm || []) {
+        bpm += b.tempo;
       }
-      if (event.data.message === 'BPM_STABLE') {
-        console.log('BPM_STABLE', event.data.result);
-      }
+      bpm /= event.data.result.bpm.length;
+      if(event.data.message === 'BPM') return this.bpm = bpm;
+      if(event.data.message === 'BPM_STABLE') return this.stableBpm = bpm;
+      console.log(event.data)
     };
 
     realtimeAnalyzerNode.port.postMessage({

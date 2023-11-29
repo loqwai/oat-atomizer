@@ -48,8 +48,6 @@ export class Visualizer {
     this.knobs.anomaly = this.knobs.anomaly ||  0;
 
     this.knobs.anomaly = this.knobs.anomaly % 5;
-    this.knobs.RADIUS = this.audioData.loudness.low / 5;
-    this.knobs.SPEED = this.audioData.features?.spectralFlatness * 2 || 0;
 
     this.writeAudioDataToTexture();
     this.gl.useProgram(this.state.program);
@@ -71,6 +69,7 @@ export class Visualizer {
     this.gl.uniform1f(this.state.attribs.zcr, this.knobs.zcr || 0);
     this.gl.uniform1f(this.state.attribs.perceptualSpread, this.knobs.perceptualSpread || 0);
     this.gl.uniform1f(this.state.attribs.perceptualSharpness, this.knobs.perceptualSharpness || 0);
+    this.gl.uniform1f(this.state.attribs.bpm, this.knobs.bpm || 0);
 
 
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
@@ -83,7 +82,7 @@ export class Visualizer {
   // keep a running average, mean, and variance of the features
   trackFeatures = () => {
     if (!this.audioData.features) return;
-    const features = {...this.audioData.features};
+    const features = {...this.audioData.features, bpm: this.audioData.bpm || 80, stableBpm: this.audioData.stableBpm || 80};
     // iterate over all the keys and values in features
     const anomalies = {};
     for (const featureName in features) {
@@ -129,7 +128,7 @@ export class Visualizer {
         delete this.isAnomalyAtTime[featureName];
       }
     }
-    console.log(this.knobs)
+    // console.log(this.knobs)
     // if abnormalities were detected, log them
     if (Object.keys(anomalies).length > 0) console.log({anomalies})
     // if there is more than one anomaly, log it
@@ -137,6 +136,7 @@ export class Visualizer {
       console.log("multiple anomalies detected")
       this.knobs.anomaly += 1;
     }
+    window.knobs = this.knobs;
   }
 
   start = async () => {
@@ -158,6 +158,13 @@ export class Visualizer {
       program,
       vao,
       attribs,
+    }
+
+    const ext = this.gl.getExtension('GMAN_debug_helper');
+    if (ext) {
+     ext.setConfiguration({
+      warnUndefinedUniforms: false,
+     });
     }
 
     this._cleanup();
@@ -264,6 +271,7 @@ export class Visualizer {
       zcr: this.gl.getUniformLocation(program, "zcr"),
       perceptualSpread: this.gl.getUniformLocation(program, "perceptualSpread"),
       perceptualSharpness: this.gl.getUniformLocation(program, "perceptualSharpness"),
+      bpm: this.gl.getUniformLocation(program, "bpm"),
 
       anomaly: this.gl.getUniformLocation(program, "anomaly"),
     }

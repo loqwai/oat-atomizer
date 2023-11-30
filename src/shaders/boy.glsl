@@ -31,6 +31,14 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
 
     // Sample the silhouette texture
     vec4 silhouetteColor = texture(iChannel1, uv);
+    // if the silhouette is close to black, make it the gradient color
+    if(silhouetteColor.g < 0.1) {
+        silhouetteColor.rgb = gradientColor;
+    } else {
+        // otherwise, make it black
+        silhouetteColor.rgb = vec3(0.0);
+    }
+
     // Orbiting stars
     vec3 starColor = vec3(0.0);
     for (int i = 0; i < 5; i++) {
@@ -46,16 +54,11 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
             // make the silhouette transparent
             silhouetteColor.rgb = mix(silhouetteColor.rgb, vec3(1.0, 0.0, 0.0), starIntensity);
         } else {
-            // Star does not overlap, render normally
-            starColor += vec3(starIntensity);
+            gradientColor = mix(gradientColor, vec3(1.0, 1.0, 1.0), starIntensity);
         }
     }
-
     // Combine the gradient and stars
     vec3 color = mix(gradientColor, starColor, step(0.01, silhouetteColor.r));
-
-    // Set the alpha channel of silhouetteColor to 1.0 to keep it opaque
-    silhouetteColor.a = 1.0;
 
     fragColor = vec4(color, silhouetteColor.a);
 }
@@ -65,3 +68,4 @@ void main(void) {
     mainImage(color, gl_FragCoord.xy);
     fragColor = color;
 }
+

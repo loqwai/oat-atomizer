@@ -18,7 +18,7 @@ const main = async () => {
     throw new Error("No shader specified");
   }
 
-  const viz = new ShaderToy(canvas, 'boy');
+  const viz = new ShaderToy(canvas, audioData, shader);
   await viz.init();
   viz.start();
   document.onclick = () => viz.startTime = performance.now();

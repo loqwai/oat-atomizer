@@ -1,5 +1,5 @@
 import { AudioData } from './AudioData.js';
-import { Visualizer } from './Visualizer.js';
+import { ShaderToy } from './ShaderToy.js';
 
 const main = async () => {
   document.onclick = null;
@@ -13,12 +13,14 @@ const main = async () => {
 
   const canvas = document.querySelector('#visualizer');
 
-  // const slimeMold = new SlimeMold(canvas);
-  // slimeMold.start();
-  const viz = new Visualizer(canvas, audioData);
-  await viz.start();
-  window.gold = viz;
+  const shader = new URLSearchParams(window.location.search).get("shader");
+  if(!shader){
+    throw new Error("No shader specified");
+  }
 
+  const viz = new ShaderToy(canvas, 'boy');
+  await viz.init();
+  viz.start();
   document.onclick = () => viz.startTime = performance.now();
   document.onkeydown = () => viz.startTime = performance.now();
 }

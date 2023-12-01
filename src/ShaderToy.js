@@ -8,6 +8,7 @@ export class ShaderToy {
     this.startTime = performance.now();
     this.shaderUrl = shaderUrl;
     this.state = {};
+    this.pixels = new Uint8Array(canvas.width * canvas.height * 16); // 4 channels (RGBA) per pixel
 
   }
 
@@ -92,8 +93,9 @@ export class ShaderToy {
     console.log({ iChannel1Location });
     const iResolution = gl.getUniformLocation(program, "iResolution");
     const iTime = gl.getUniformLocation(program, "iTime");
+    const iStarCenterX = gl.getUniformLocation(program, "iStarCenterX");
 
-    this.state = { ...this.state, iChannel1Location, iResolution, iTime };
+    this.state = { ...this.state, iChannel1Location, iResolution, iTime, iStarCenterX };
     return program;
   };
 
@@ -122,10 +124,13 @@ export class ShaderToy {
   render = () => {
     if (!this.running) return;
     const { gl, state } = this;
+    const { pixels, canvas } = this;
+    const { width, height } = canvas;
 
     gl.bindVertexArray(this.state.vao);
     gl.uniform3f(this.state.iResolution, this.canvas.width, this.canvas.height, 1.0);
     gl.uniform1f(this.state.iTime, (performance.now() - this.startTime) / 1000);
+    gl.uniform1f(this.state.iStarCenterX, this.iStarCenterX || 0.25);
 
     this.writeAudioDataToTexture();
     gl.useProgram(this.state.program);
@@ -134,6 +139,9 @@ export class ShaderToy {
     // Set the texture for iChannel1
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, this.imageTexture);
+    const imagePixels = new Uint8Array(width * height * 4);
+    gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, imagePixels);
+    this.prevPixels = imagePixels;
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, state.audioTexture);
@@ -142,17 +150,34 @@ export class ShaderToy {
 
     // Draw
     gl.drawArrays(gl.TRIANGLES, 0, 6);
+    gl.readPixels(0, 0, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    // // gravitate to the spectral centroid
+    // const spectralCentroid = this.audioData.features.spectralCentroid / 100;
+    // let iStarCenterX = this.iStarCenterX || 0.25;
+    // let diff = iStarCenterX - spectralCentroid;
+    // iStarCenterX -= diff / 100;
+    // this.iStarCenterX = iStarCenterX;
+
+      const texture = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
 
 
-    requestAnimationFrame(this.render);
-  };
+      this.imageTexture = texture;
+      requestAnimationFrame(this.render);
+    };
 
-  start = () => {
-    this.running = true;
-    requestAnimationFrame(this.render);
-  };
+    start = () => {
+      this.running = true;
+      requestAnimationFrame(this.render);
+    };
 
-  stop = () => {
-    this.running = false;
-  };
-}
+    stop = () => {
+      this.running = false;
+    };
+  }

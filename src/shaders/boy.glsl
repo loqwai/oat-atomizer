@@ -6,6 +6,7 @@ uniform sampler2D iChannel0; // Audio data texture
 uniform sampler2D iChannel1; // Silhouette texture
 uniform vec3 iResolution;
 uniform float iTime;
+uniform float iStarCenterX;
 out vec4 fragColor;
 
 // Function to create a fuzzy circle/star
@@ -39,13 +40,12 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
   vec4 silhouetteColor = texture(iChannel1, uv);
 
     // Check if the silhouette is close to black, make it the gradient color; otherwise, make it black
-  silhouetteColor.rgb = mix(gradientColor, vec3(0.0f), step(0.1f, silhouetteColor.g));
-
+  // silhouetteColor.rgb = mix(gradientColor, vec3(0.0f), step(0.1f, silhouetteColor.g));
     // Orbiting stars
   vec3 starColor = vec3(0.0f);
   for(int i = 0; i < 5; i++) {
     float angle = orbitSpeed * iTime + float(i) * 0.628f;
-    vec2 starPos = vec2(0.5f) + 0.25f * vec2(cos(angle), sin(angle));
+    vec2 starPos = vec2(0.5f) + iStarCenterX * vec2(cos(angle), sin(angle));
     float starSize = 0.0009f * pow(1.f + audioIntensity, 10.f);
 
     float starIntensity = circle(uv, starPos, starSize);
@@ -55,17 +55,33 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     if(starDistance < 0.01f) {
       // Star overlaps with silhouette, make only the overlapping part dark red
       // inverse gradient
+
       vec3 altColor = mix(gradientColor, vec3(0.0f), step(0.1f, silhouetteColor.g));
       starColor += mix(starColor, altColor,starIntensity/audioIntensity);
+      vec3 prevColor = texture(iChannel1, distortedUV).rgb;
+      // invert prevColor
+      // prevColor = vec3(1.0f) - prevColor;
+      // if prevColor is not black, mix with starColor
+      if(prevColor.r > 0.0f || prevColor.g > 0.0f || prevColor.b > 0.0f) {
+        starColor = mix(starColor, prevColor, starIntensity * 0.1);
+      }
     } else {
-      gradientColor = mix(gradientColor, vec3(1.0f, 0.1f, 0.4f), pow(starDistance, 2.) * starIntensity);
+      // vec4 prevColor = texture(iChannel1, distortedUV);
+      // starColor = mix(starColor, prevColor.rgb, 0.0001);
+      gradientColor = mix(gradientColor, vec3(1.0f, 0.1f, 0.4f), pow(starDistance, 0.1) * starIntensity);
     }
   }
 
     // Combine the gradient and stars
   vec3 color = mix(gradientColor, starColor, step(0.01f, silhouetteColor.r));
 
-    // Use the distorted UV coordinates for the final color
+  // if the current color is black, but the previous color isn't, use the previous color
+  vec3 prevColor = texture(iChannel1, distortedUV).rgb;
+  if( color.r < 0.1 && color.g < 0.1 && color.b < 0.1) {
+    // use the inverse of the previous color
+    color  = mix(color, prevColor, 0.1);
+
+  }
   fragColor = vec4(color, silhouetteColor.a);
 }
 

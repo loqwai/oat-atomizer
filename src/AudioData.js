@@ -49,7 +49,6 @@ export class AudioData {
   start = async () => {
     const audioInput = this.audio ? this.context.createMediaElementSource(this.audio) : this.context.createMediaStreamSource(await navigator.mediaDevices.getUserMedia({ audio: true, video: false }));
     this.analyser.fftSize = this.fftSize;
-
     audioInput.connect(this.analyser);
     audioInput.connect(this.filters.lowpass).connect(this.analysers.lowpass);;
     audioInput.connect(this.filters.highpass).connect(this.analysers.highpass);
@@ -86,6 +85,7 @@ export class AudioData {
         stabilizationTime: 20_000, // Default value is 20_000ms after what the library will automatically delete all collected data and restart analysing BPM
       }
     })
+
     this.setupMeyda(audioInput);
     requestAnimationFrame(this.trackAverageLoudness);
     requestAnimationFrame(this.trackPeaks);
@@ -96,6 +96,10 @@ export class AudioData {
     let featureList = Meyda.listAvailableFeatureExtractors();
     // remove spectralFlux from the featureList bc it crashes
     featureList = featureList.filter(f => f !== 'spectralFlux');
+    this.features = {}
+    for(const feature of featureList) {
+      this.features[feature] = 0;
+    }
     const analyzer = Meyda.createMeydaAnalyzer({
       audioContext: this.context,
       source: audioInput,
@@ -103,9 +107,14 @@ export class AudioData {
       featureExtractors: featureList,
       callback: features => {
         // console.log(features)
-        this.features = features;
+        this.features = {...this.features, ...features};
       }
     });
+
+    for(const feature in this.features) {
+      this.features[feature] = 0;
+      console.log(feature)
+    }
     analyzer.start();
   }
 

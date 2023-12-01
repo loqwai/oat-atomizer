@@ -1,17 +1,22 @@
-import { createShader } from "./shaderUtils.js";
-import { AudioData } from "./AudioData.js";
+import { createShader, tagObject } from "./shaderUtils.js";
 export class ShaderToy {
-  constructor(canvas, audioData, shaderUrl) {
+  constructor(canvas, audioData, shaderUrl, initialImageUrl) {
     this.audioData = audioData;
     this.canvas = canvas;
     this.gl = canvas.getContext("webgl2");
+    this.gl.viewport(0, 0, canvas.width, canvas.height);
     this.startTime = performance.now();
     this.shaderUrl = shaderUrl;
+    this.initialImageUrl = initialImageUrl || "/public/boy-cliff-mask.png";
+    this.pixels = new Uint8Array(canvas.width * canvas.height * 4); // 4 channels (RGBA) per pixel
     this.state = {};
-    this.pixels = new Uint8Array(canvas.width * canvas.height * 16); // 4 channels (RGBA) per pixel
-
+    const ext = this.gl.getExtension('GMAN_debug_helper');
+    if (ext) {
+     ext.setConfiguration({
+      warnUndefinedUniforms: false,
+     });
+    }
   }
-
 
   _createAudioTexture = (size) => {
     const { gl } = this;
@@ -23,22 +28,43 @@ export class ShaderToy {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     return texture;
-  }
+  };
+
+  initAudioUniforms = () => {
+    const { gl, audioData } = this;
+    const program = this.state.program;
+
+    for (const key in audioData.features) {
+      if (typeof audioData.features[key] === "number") {
+        // Create uniform locations for each audio feature
+        this.state[key] = gl.getUniformLocation(program, key);
+      }
+    }
+
+    // Create the audio texture
+    this.state.audioTexture = this._createAudioTexture(1024);
+  };
 
   writeAudioDataToTexture = () => {
     const { gl, audioData, state } = this;
-    const frequencyData = audioData.getFrequencyData();
-    const waveform = audioData.getWaveform();
     gl.bindTexture(gl.TEXTURE_2D, state.audioTexture);
-    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, frequencyData.length, 1, gl.RED, gl.UNSIGNED_BYTE, frequencyData);
-    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 1, waveform.length / 2, 1, gl.RED, gl.UNSIGNED_BYTE, waveform.slice(waveform.length / 2));
-  }
 
+    for (const key in audioData.features) {
+      if (typeof audioData.features[key] === "number") {
+        console.log(key, audioData.features[key])
+        // Update the audio texture and corresponding uniform values
+        gl.uniform1f(state[key], audioData.features[key] || 0);
+      }
+    }
+  };
 
   init = async () => {
+    await this.audioData.start();
+    this.state.audioData = { ...this.audioData.features }
+    console.log(this.state.audioData)
     const { gl } = this;
     const program = await this.createRenderProgram();
-    this.imageTexture = await this.createImageTexture("/public/boy-cliff-mask.png");
+    this.imageTexture = await this.createImageTexture(this.initialImageUrl);
     const positionBuffer = this.createPositionBuffer();
     const vao = gl.createVertexArray();
     gl.bindVertexArray(vao);
@@ -48,11 +74,21 @@ export class ShaderToy {
 
     this.state.program = program;
     this.state.vao = vao;
+    this.state.iResolution = gl.getUniformLocation(program, "iResolution");
+    this.state.iTime = gl.getUniformLocation(program, "iTime");
+    this.state.iChannel1Location = gl.getUniformLocation(program, "iChannel1");
 
-    this.state.audioTexture = this._createAudioTexture(1024);
-
+    // Initialize audio feature uniforms
+    for (const key in this.audioData.features) {
+      if (typeof this.audioData.features[key] === "number") {
+        this.state[key] = gl.getUniformLocation(program, key);
+      }
+    }
+    // Initialize audio uniforms
+    this.initAudioUniforms();
     requestAnimationFrame(this.render);
   };
+
 
   createPositionBuffer = () => {
     const { gl } = this;
@@ -89,14 +125,19 @@ export class ShaderToy {
       console.warn("iChannel1Location is null. Check if iChannel1 is declared and used in the shader.");
     }
 
-    // Store the program and uniform location in the state
-    console.log({ iChannel1Location });
     const iResolution = gl.getUniformLocation(program, "iResolution");
     const iTime = gl.getUniformLocation(program, "iTime");
-    const iStarCenterX = gl.getUniformLocation(program, "iStarCenterX");
     const spectralSpread = gl.getUniformLocation(program, "spectralSpread");
+    console.log(this.state.audioData)
+    // Create uniform locations for each audio feature from the audioData map
+    const audioState = {};
+    for (const key in this.audioData.features) {
+      if (typeof this.audioData.features[key] === "number") {
+        audioState[key] = gl.getUniformLocation(program, key);
+      }
+    }
 
-    this.state = { ...this.state, iChannel1Location, iResolution, iTime, iStarCenterX, spectralSpread };
+    this.state = { ...this.state, iChannel1Location, iResolution, iTime, ...audioState };
     return program;
   };
 
@@ -131,8 +172,10 @@ export class ShaderToy {
     gl.bindVertexArray(this.state.vao);
     gl.uniform3f(this.state.iResolution, this.canvas.width, this.canvas.height, 1.0);
     gl.uniform1f(this.state.iTime, (performance.now() - this.startTime) / 1000);
-    gl.uniform1f(this.state.iStarCenterX, this.iStarCenterX || 0.25);
-    gl.uniform1f(this.state.spectralSpread, this.audioData.features.spectralSpread || 0.001);
+    for (const i in this.state.features) {
+      gl.uniform1f(this.state[i], this.audioData.features[i] || 0);
+      tagObject(gl, this.state[i], i);
+    }
 
     this.writeAudioDataToTexture();
     gl.useProgram(this.state.program);
@@ -153,33 +196,27 @@ export class ShaderToy {
     // Draw
     gl.drawArrays(gl.TRIANGLES, 0, 6);
     gl.readPixels(0, 0, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
-    // // gravitate to the spectral centroid
-    // const spectralCentroid = this.audioData.features.spectralCentroid / 100;
-    // let iStarCenterX = this.iStarCenterX || 0.25;
-    // let diff = iStarCenterX - spectralCentroid;
-    // iStarCenterX -= diff / 100;
-    // this.iStarCenterX = iStarCenterX;
 
-      const texture = gl.createTexture();
-      gl.bindTexture(gl.TEXTURE_2D, texture);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
 
 
-      this.imageTexture = texture;
-      requestAnimationFrame(this.render);
-    };
+    this.imageTexture = texture;
+    requestAnimationFrame(this.render);
+  };
 
-    start = () => {
-      this.running = true;
-      requestAnimationFrame(this.render);
-    };
+  start = () => {
+    this.running = true;
+    requestAnimationFrame(this.render);
+  };
 
-    stop = () => {
-      this.running = false;
-    };
-  }
+  stop = () => {
+    this.running = false;
+  };
+}

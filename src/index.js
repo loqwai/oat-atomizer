@@ -9,16 +9,16 @@ const main = async () => {
 
   document.querySelector('h1').remove();
   const audioData = new AudioData();
-  await audioData.start();
 
   const canvas = document.querySelector('#visualizer');
-
-  const shader = new URLSearchParams(window.location.search).get("shader");
+  const params = new URLSearchParams(window.location.search);
+  const shader = params.get("shader");
+  const initialImageUrl = params.get("image");
   if(!shader){
     throw new Error("No shader specified");
   }
 
-  const viz = new ShaderToy(canvas, audioData, shader);
+  const viz = new ShaderToy(canvas, audioData, shader, initialImageUrl);
   await viz.init();
   viz.start();
   document.onclick = () => viz.startTime = performance.now();

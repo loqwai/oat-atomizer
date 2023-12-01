@@ -1,45 +1,50 @@
 #version 300 es
-
 precision highp float;
+
+#define S smoothstep
+#define PI 3.14159265359
 
 uniform vec3 iResolution;
 uniform float iTime;
-uniform sampler2D iChannel0; // Raw audio data texture
-uniform sampler2D iChannel1; // FFT texture
-// Additional uniforms for audio features
-uniform float energy;
-uniform float spectralCentroid;
-uniform float zcr;
-uniform float rms;
+uniform sampler2D iChannel0;
 
-out vec4 FragColor; // Define the output color variable
+out vec4 fragColor;
+
+vec4 Line(vec2 uv, float speed, float height, vec3 col) {
+    highp float waveAmplitude = 0.1; // Reduce the wave amplitude
+
+    uv.y += S(1.0, 0.0, abs(uv.x)) * sin(iTime * speed + uv.x * height) * waveAmplitude;
+
+    highp float lineThickness = 0.016;
+    col = clamp(col * 2.9, 0.0, 1.0);
+
+    return vec4(S(0.06 * S(0.2, 0.9, abs(uv.x)), 0.0, abs(uv.y) - lineThickness) * col, 1.0) * S(1.1, 0.3, abs(uv.x));
+}
 
 void main() {
-    // Normalize pixel coordinates to the range [-1, 1]
-    vec2 uv = (gl_FragCoord.xy / iResolution.xy) * 2.0 - 1.0;
+    highp vec2 uv = gl_FragCoord.xy / iResolution.xy;
+    highp vec2 p = uv * 2.0 - 1.0;
+    p.x *= iResolution.x / iResolution.y;
 
-    // Time-based animation
-    float time = iTime * 0.5;
+    highp vec3 col = vec3(0.0);
 
-    // Audio-reactive color based on energy
-    vec3 color = vec3(energy, 1.0 - energy, 0.5);
+    for (highp float i = 0.0; i <= 5.0; i += 1.0) {
+        highp float t = i / 5.0;
+        col += Line(p, 1.0 + t, 4.0 + t, vec3(0.2 + t * 0.7, 0.2 + t * 0.4, 0.3)).rgb;
+    }
 
-    // Audio-reactive pattern based on spectral centroid
-    float pattern = spectralCentroid * 2.0;
+    highp vec4 lineColor1 = Line(p, 2.0, 6.0, vec3(1.0, 0.5, 0.0));
+    col += lineColor1.rgb;
 
-    // Kaleidoscope effect
-    float angle = atan(uv.y, uv.x);
-    float radius = length(uv);
-    float kaleidoscope = mod(angle + time, pattern);
+    highp vec4 lineColor2 = Line(p, 2.2, 5.5, vec3(0.5, 1.0, 0.0));
+    col += lineColor2.rgb;
 
-    // Apply kaleidoscope transformation
-    uv = vec2(cos(kaleidoscope) * radius, sin(kaleidoscope) * radius);
+    highp float size = texture(iChannel0, vec2(0.1, 0.1)).x;
 
-    // Create an ever-changing pattern
-    float patternValue = sin(uv.x * 10.0 + time) * cos(uv.y * 10.0 + time);
+    highp vec4 lineColor3 = Line(p, PI, size * 2.2, vec3(3.5, 8.7, 1.6));
+    col += lineColor3.rgb;
 
-    // Final color
-    vec3 finalColor = color * patternValue;
+    col /= 2.3;
 
-    FragColor = vec4(finalColor, 1.0); // Assign the output color
+    fragColor = vec4(col, 1.0);
 }

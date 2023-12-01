@@ -1,20 +1,22 @@
 import { createShader, tagObject } from "./shaderUtils.js";
+
 export class ShaderToy {
   constructor(canvas, audioData, shaderUrl, initialImageUrl) {
-    this.audioData = audioData;
     this.canvas = canvas;
-    this.gl = canvas.getContext("webgl2");
-    this.gl.viewport(0, 0, canvas.width, canvas.height);
-    this.startTime = performance.now();
+    this.audioData = audioData;
     this.shaderUrl = shaderUrl;
-    this.initialImageUrl = initialImageUrl || "/public/boy-cliff-mask.png";
+    this.initialImageUrl = initialImageUrl || "/public/boy-cliff-mask.png"
+    this.gl = canvas.getContext("webgl2");
     this.pixels = new Uint8Array(canvas.width * canvas.height * 4); // 4 channels (RGBA) per pixel
+    this.startTime = performance.now();
     this.state = {};
+
+    // Enable the GMAN_debug_helper extension
     const ext = this.gl.getExtension('GMAN_debug_helper');
     if (ext) {
-     ext.setConfiguration({
-      warnUndefinedUniforms: false,
-     });
+      ext.setConfiguration({
+        warnUndefinedUniforms: false,
+      });
     }
   }
 
@@ -51,19 +53,18 @@ export class ShaderToy {
 
     for (const key in audioData.features) {
       if (typeof audioData.features[key] === "number") {
-        console.log(key, audioData.features[key])
         // Update the audio texture and corresponding uniform values
         gl.uniform1f(state[key], audioData.features[key] || 0);
+        tagObject(gl, state[key], key);
       }
     }
   };
 
   init = async () => {
     await this.audioData.start();
-    this.state.audioData = { ...this.audioData.features }
-    console.log(this.state.audioData)
     const { gl } = this;
     const program = await this.createRenderProgram();
+    console.log(this.initialImageUrl)
     this.imageTexture = await this.createImageTexture(this.initialImageUrl);
     const positionBuffer = this.createPositionBuffer();
     const vao = gl.createVertexArray();
@@ -79,20 +80,13 @@ export class ShaderToy {
     this.state.iChannel1Location = gl.getUniformLocation(program, "iChannel1");
 
     // Initialize audio feature uniforms
-    for (const key in this.audioData.features) {
-      if (typeof this.audioData.features[key] === "number") {
-        this.state[key] = gl.getUniformLocation(program, key);
-      }
-    }
-    // Initialize audio uniforms
     this.initAudioUniforms();
+    console.log('made it out of the init function')
     requestAnimationFrame(this.render);
   };
 
-
   createPositionBuffer = () => {
     const { gl } = this;
-
     const buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, -1, 1, 1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
@@ -127,17 +121,18 @@ export class ShaderToy {
 
     const iResolution = gl.getUniformLocation(program, "iResolution");
     const iTime = gl.getUniformLocation(program, "iTime");
-    const spectralSpread = gl.getUniformLocation(program, "spectralSpread");
-    console.log(this.state.audioData)
+    this.state.iChannel1Location = iChannel1Location;
+    this.state.iResolution = iResolution;
+    this.state.iTime = iTime;
+
+
     // Create uniform locations for each audio feature from the audioData map
-    const audioState = {};
     for (const key in this.audioData.features) {
       if (typeof this.audioData.features[key] === "number") {
-        audioState[key] = gl.getUniformLocation(program, key);
+        this.state[key] = gl.getUniformLocation(program, key);
       }
     }
 
-    this.state = { ...this.state, iChannel1Location, iResolution, iTime, ...audioState };
     return program;
   };
 
@@ -169,29 +164,22 @@ export class ShaderToy {
     const { pixels, canvas } = this;
     const { width, height } = canvas;
 
-    gl.bindVertexArray(this.state.vao);
-    gl.uniform3f(this.state.iResolution, this.canvas.width, this.canvas.height, 1.0);
-    gl.uniform1f(this.state.iTime, (performance.now() - this.startTime) / 1000);
-    for (const i in this.state.features) {
-      gl.uniform1f(this.state[i], this.audioData.features[i] || 0);
-      tagObject(gl, this.state[i], i);
-    }
+    gl.bindVertexArray(state.vao);
+    gl.uniform3f(state.iResolution, this.canvas.width, this.canvas.height, 1.0);
+    gl.uniform1f(state.iTime, (performance.now() - this.startTime) / 1000);
 
     this.writeAudioDataToTexture();
-    gl.useProgram(this.state.program);
-    gl.bindVertexArray(this.state.vao);
+    gl.useProgram(state.program);
+    gl.bindVertexArray(state.vao);
 
     // Set the texture for iChannel1
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, this.imageTexture);
-    const imagePixels = new Uint8Array(width * height * 4);
-    gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, imagePixels);
-    this.prevPixels = imagePixels;
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, state.audioTexture);
 
-    gl.uniform1i(this.state.iChannel1Location, 1);
+    gl.uniform1i(state.iChannel1Location, 1);
 
     // Draw
     gl.drawArrays(gl.TRIANGLES, 0, 6);
@@ -205,7 +193,6 @@ export class ShaderToy {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
-
 
     this.imageTexture = texture;
     requestAnimationFrame(this.render);

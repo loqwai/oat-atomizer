@@ -94,8 +94,9 @@ export class ShaderToy {
     const iResolution = gl.getUniformLocation(program, "iResolution");
     const iTime = gl.getUniformLocation(program, "iTime");
     const iStarCenterX = gl.getUniformLocation(program, "iStarCenterX");
+    const spectralSpread = gl.getUniformLocation(program, "spectralSpread");
 
-    this.state = { ...this.state, iChannel1Location, iResolution, iTime, iStarCenterX };
+    this.state = { ...this.state, iChannel1Location, iResolution, iTime, iStarCenterX, spectralSpread };
     return program;
   };
 
@@ -131,6 +132,7 @@ export class ShaderToy {
     gl.uniform3f(this.state.iResolution, this.canvas.width, this.canvas.height, 1.0);
     gl.uniform1f(this.state.iTime, (performance.now() - this.startTime) / 1000);
     gl.uniform1f(this.state.iStarCenterX, this.iStarCenterX || 0.25);
+    gl.uniform1f(this.state.spectralSpread, this.audioData.features.spectralSpread || 0.001);
 
     this.writeAudioDataToTexture();
     gl.useProgram(this.state.program);

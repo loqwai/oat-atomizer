@@ -5,7 +5,7 @@ export class ShaderToy {
     this.canvas = canvas;
     this.audioData = audioData;
     this.shaderUrl = shaderUrl;
-    this.initialImageUrl = initialImageUrl || "/public/boy-cliff-mask.png"
+    this.initialImageUrl = initialImageUrl || "/public/placeholder-image.png"
     this.gl = canvas.getContext("webgl2");
     this.pixels = new Uint8Array(canvas.width * canvas.height * 4); // 4 channels (RGBA) per pixel
     this.startTime = performance.now();
@@ -112,19 +112,17 @@ export class ShaderToy {
       throw new Error(`Could not link render program. ${gl.getProgramInfoLog(program)}\n`);
     }
 
-    // Use the program to retrieve the uniform location
+    // Use the program to retrieve the uniform locations
     gl.useProgram(program);
+
+    // Get the location of iChannel0 and iChannel1 if they exist
+    const iChannel0Location = gl.getUniformLocation(program, "iChannel0");
     const iChannel1Location = gl.getUniformLocation(program, "iChannel1");
+
+    // Check if iChannel1 is declared and used in the shader
     if (iChannel1Location === null) {
       console.warn("iChannel1Location is null. Check if iChannel1 is declared and used in the shader.");
     }
-
-    const iResolution = gl.getUniformLocation(program, "iResolution");
-    const iTime = gl.getUniformLocation(program, "iTime");
-    this.state.iChannel1Location = iChannel1Location;
-    this.state.iResolution = iResolution;
-    this.state.iTime = iTime;
-
 
     // Create uniform locations for each audio feature from the audioData map
     for (const key in this.audioData.features) {
@@ -132,6 +130,20 @@ export class ShaderToy {
         this.state[key] = gl.getUniformLocation(program, key);
       }
     }
+
+    // Set iChannel0 and iChannel1 locations if found
+    if (iChannel0Location !== null) {
+      gl.uniform1i(iChannel0Location, 0);
+    }
+    if (iChannel1Location !== null) {
+      gl.uniform1i(iChannel1Location, 1);
+    }
+
+    // Set other uniform locations like iResolution and iTime
+    this.state.iChannel0Location = iChannel0Location;
+    this.state.iChannel1Location = iChannel1Location;
+    this.state.iResolution = gl.getUniformLocation(program, "iResolution");
+    this.state.iTime = gl.getUniformLocation(program, "iTime");
 
     return program;
   };
@@ -173,13 +185,17 @@ export class ShaderToy {
     gl.bindVertexArray(state.vao);
 
     // Set the texture for iChannel1
-    gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, this.imageTexture);
+    if (state.iChannel1Location) {
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D, this.imageTexture);
+      gl.uniform1i(state.iChannel1Location, 1);
+    }
 
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, state.audioTexture);
+    if (state.iChannel0Location) {
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, state.audioTexture);
+    }
 
-    gl.uniform1i(state.iChannel1Location, 1);
 
     // Draw
     gl.drawArrays(gl.TRIANGLES, 0, 6);

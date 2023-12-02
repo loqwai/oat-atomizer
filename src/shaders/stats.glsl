@@ -8,9 +8,19 @@ uniform sampler2D iChannel1; // Silhouette texture
 
 uniform vec3 iResolution;
 uniform float iTime;
+
 uniform float energy;
 uniform float energyMin;
 uniform float energyMax;
+
+uniform float spectralFlatness;
+uniform float spectralFlatnessMin;
+uniform float spectralFlatnessMax;
+
+uniform float spectralCentroid;
+uniform float spectralCentroidMin;
+uniform float spectralCentroidMax;
+
 
 // Function to render a colored bar based on a single uniform value and bar number
 vec3 renderBar(float uniformValue, float uniformMin, float uniformMax, int barNumber, vec2 fragCoord)
@@ -46,9 +56,11 @@ vec3 renderBar(float uniformValue, float uniformMin, float uniformMax, int barNu
 
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec3 color1 = renderBar(energy, energyMin, energyMax, 0, fragCoord);
+    vec3 color2 = renderBar(spectralFlatness, spectralFlatnessMin, spectralFlatnessMax, 1, fragCoord);
+    vec3 color3 = renderBar(spectralCentroid, spectralCentroidMin, spectralCentroidMax, 2, fragCoord);
 
     // Combine the colors of the bars
-    vec3 finalColor = color1;
+    vec3 finalColor = color1 + color2 + color3;
 
     // Set the output color
     fragColor = vec4(finalColor, 1.0);

@@ -1,6 +1,7 @@
 #version 300 es
 #define S smoothstep
 #define PI 3.14159265359
+
 precision highp float;
 
 uniform vec3 iResolution;

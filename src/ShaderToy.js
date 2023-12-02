@@ -41,7 +41,7 @@ export class ShaderToy {
 
     for (const key in audioData.features) {
       if (typeof audioData.features[key] === "number") {
-        console.log(`initializing audio uniform for ${key}`);
+        //console.log(`initializing audio uniform for ${key}`);
         // Create uniform locations for each audio feature
         this.state.audioUniforms[key] = gl.getUniformLocation(program, key);
       }
@@ -68,11 +68,11 @@ export class ShaderToy {
   };
 
   initializeAudioStatTrackers = () => {
-    console.log('initializing audio stat trackers')
-    console.log(this.audioData.features)
+    //console.log('initializing audio stat trackers')
+    //console.log(this.audioData.features)
     for (const key in this.audioData.features) {
       if (typeof this.audioData.features[key] === "number") {
-        console.log('initializing audio stat tracker for', key)
+        //console.log('initializing audio stat tracker for', key)
         this.audioStatTrackers[key] = new StatTracker(60 * 5);
       }
     }
@@ -115,7 +115,7 @@ export class ShaderToy {
     // Initialize audio feature uniforms
     this.initAudioUniforms();
     this.initializeAudioStatTrackerUniforms();
-    console.log('made it out of the init function')
+    //console.log('made it out of the init function')
     requestAnimationFrame(this.render);
   };
 
@@ -164,7 +164,7 @@ export class ShaderToy {
     // Create uniform locations for each audio feature from the audioData map
     for (const key in this.audioData.features) {
       if (typeof this.audioData.features[key] === "number") {
-        console.log('creating uniform location for', key);
+        //console.log('creating uniform location for', key);
         this.state.audioUniforms[key] = gl.getUniformLocation(program, key);
       }
     }
@@ -233,11 +233,11 @@ export class ShaderToy {
       const statTracker = this.audioStatTrackers[key];
       const {zScore, mean, standardDeviation} = statTracker;
       let keyName = `${key}ZScore`;
-      console.log({keyName})
+      //console.log({keyName})
       gl.uniform1f(this.state.audioUniforms[keyName], zScore || -1);
       tagObject(gl, this.state.audioUniforms[keyName], keyName);
       keyName = `${key}Mean`;
-      console.log({keyName})
+      //console.log({keyName})
       gl.uniform1f(this.state.audioUniforms[`${key}Mean`], mean || -1);
       tagObject(gl, this.state.audioUniforms[keyName], keyName);
       keyName = `${key}standardDistribution`;

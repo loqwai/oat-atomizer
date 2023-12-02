@@ -1,59 +1,74 @@
 #version 300 es
-precision highp float;
-
 #define S smoothstep
 #define PI 3.14159265359
+precision highp float;
 
 uniform vec3 iResolution;
 uniform float iTime;
-uniform sampler2D iChannel0;
+uniform float spectralSlopeZScore;
+uniform float spectralSlopeStandardDeviation;
+uniform float spectralCentroidZScore;
 uniform float energy;
-uniform float energyStandardDeviation;
+
+const float waveAmplitudeFactor = 0.09; // Adjust this constant as needed
+
 out vec4 fragColor;
+uniform sampler2D iChannel0;
 
-vec4 Line(vec2 uv, float speed, float height, vec3 col, float audioAmplitude) {
-    highp float waveAmplitude = 0.1 + audioAmplitude; // Modulate wave amplitude with audio amplitude
+vec4 Line(vec2 uv, float speed, float height, vec3 col, float amplitudeFactor) {
+    float waveAmplitude = 0.16 + waveAmplitudeFactor * (amplitudeFactor); // Adjust the effect of amplitudeFactor on the wave here
 
-    // Adjust wave speed based on energy
-    speed *= (1.0 + energy);
-    // if energyZScore is high, change the wave color to red
-    col = mix(col, vec3(1.0, 0.0, 0.0), energyStandardDeviation);
+    uv.y += S(1.0, 0.0, abs(uv.x)) * sin((iTime + amplitudeFactor) * speed + uv.x * height) * waveAmplitude;
 
-    uv.y += S(1.0, 0.0, abs(uv.x)) * sin(iTime * speed + uv.x * height) * waveAmplitude;
-
-    highp float lineThickness = 0.01;
+    float lineThickness = 0.016;
     col = clamp(col * 2.9, 0.0, 1.0);
 
     return vec4(S(0.06 * S(0.2, 0.9, abs(uv.x)), 0.0, abs(uv.y) - lineThickness) * col, 1.0) * S(1.1, 0.3, abs(uv.x));
 }
 
-void main() {
-    highp vec2 uv = gl_FragCoord.xy / iResolution.xy;
-    highp vec2 p = uv * 2.0 - 1.0;
+float smoothPulse(float center, float width, float t) {
+    return smoothstep(center - width, center + width, sin(t));
+}
+
+void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+    float amplitudeFactor = spectralCentroidZScore / (energy * 100.);
+    vec2 uv = fragCoord / iResolution.xy;
+    vec2 p = uv * 2.0 - 1.0;
     p.x *= iResolution.x / iResolution.y;
 
-    highp vec3 col = vec3(0.0);
+    vec3 col = vec3(0.0);
 
-    // Sample audio amplitude from iChannel0
-    highp float audioAmplitude = texture(iChannel0, vec2(0.1, 0.1)).x * 0.2;
-
-    for (highp float i = 0.0; i <= 5.0; i += 1.0) {
-        highp float t = i / 5.0;
-        col += Line(p, 1.0 + t, 4.0 + t, vec3(0.2 + t * 0.7, 0.2 + t * 0.4, 0.3), audioAmplitude).rgb;
+    for (float i = 0.0; i <= 5.0; i += 1.0) {
+        float t = i / 5.0;
+        col += Line(p, 1.0 + t + amplitudeFactor * 0.5, 4.0 + t, vec3(0.0, 1.0, 0.0), amplitudeFactor).rgb;
     }
 
-    highp vec4 lineColor1 = Line(p, 2.0, 6.0, vec3(1.0, 0.5, 0.0), audioAmplitude);
+    vec4 lineColor1 = Line(p, 2.0 + amplitudeFactor, 6.0, vec3(1.0, 0.5, 0.0), amplitudeFactor);
+
+    float deviationThreshold = 2.0;
+    if (spectralSlopeStandardDeviation > deviationThreshold) {
+        lineColor1.rgb = mix(vec3(1.0, 0.5, 0.0), vec3(1.0, 0.0, 0.0), smoothstep(deviationThreshold, spectralSlopeStandardDeviation + 0.1, spectralSlopeStandardDeviation));
+    }
+
     col += lineColor1.rgb;
 
-    highp vec4 lineColor2 = Line(p, 2.2, 5.5, vec3(0.5, 1.0, 0.0), audioAmplitude);
+    vec4 lineColor2 = Line(p, 2.2 + amplitudeFactor * 0.5, 5.5, vec3(0.5, 1.0, 0.0), amplitudeFactor);
     col += lineColor2.rgb;
 
-    highp float size = texture(iChannel0, vec2(0.1, 0.1)).x;
+    float size = texture(iChannel0, vec2(0.1, 0.1)).x;
 
-    highp vec4 lineColor3 = Line(p, PI, size * 2.2, vec3(3.5, 8.7, 1.6), audioAmplitude);
+    vec4 lineColor3 = Line(p, PI + amplitudeFactor, size * 2.2, vec3(0.0, 1.0, 1.0), amplitudeFactor);
+
     col += lineColor3.rgb;
 
     col /= 2.3;
 
     fragColor = vec4(col, 1.0);
+}
+
+void main(void) {
+
+    vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
+    mainImage(color, gl_FragCoord.xy);
+    fragColor = color;
 }

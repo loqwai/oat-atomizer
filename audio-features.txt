@@ -1,0 +1,11 @@
+      iResolution
+      iTime
+      energy
+      spectralSlope
+      spectralCentroid
+      spectralCrest
+      spectralRolloff
+      spectralFlatness
+      spectralSpread
+      spectralSkewness
+      spectralKurtosis

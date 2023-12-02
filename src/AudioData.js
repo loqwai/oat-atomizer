@@ -6,6 +6,7 @@ const {Meyda} = window;
 const createFilter = (context, type) => {
   const filter = context.createBiquadFilter();
   filter.type = type;
+  filter.frequency.value = 100;
   return filter;
 }
 
@@ -48,7 +49,6 @@ export class AudioData {
   start = async () => {
     const audioInput = this.audio ? this.context.createMediaElementSource(this.audio) : this.context.createMediaStreamSource(await navigator.mediaDevices.getUserMedia({ audio: true, video: false }));
     this.analyser.fftSize = this.fftSize;
-
     audioInput.connect(this.analyser);
     audioInput.connect(this.filters.lowpass).connect(this.analysers.lowpass);;
     audioInput.connect(this.filters.highpass).connect(this.analysers.highpass);
@@ -67,21 +67,26 @@ export class AudioData {
 
 
     realtimeAnalyzerNode.port.onmessage = (event) => {
-      if (event.data.message === 'BPM') {
-        // console.log('BPM', event.data.result);
+      if(!event.data.message.startsWith('BPM')) return;
+      let bpm = 0
+      // if(!event.data.result?.bpm?.length) return;
+      for(const b of event.data.result?.bpm || []) {
+        bpm += b.tempo;
       }
-      if (event.data.message === 'BPM_STABLE') {
-        console.log('BPM_STABLE', event.data.result);
-      }
+      bpm /= event.data.result?.bpm?.length || 0;
+      if(event.data.message === 'BPM') return this.bpm = bpm;
+      if(event.data.message === 'BPM_STABLE') return this.stableBpm = bpm;
+
     };
 
     realtimeAnalyzerNode.port.postMessage({
       message: 'ASYNC_CONFIGURATION',
       parameters: {
         continuousAnalysis: true,
-        stabilizationTime: 20_000, // Default value is 20_000ms after what the library will automatically delete all collected data and restart analysing BPM
+        stabilizationTime: 20_00, // Default value is 20_000ms after what the library will automatically delete all collected data and restart analysing BPM
       }
     })
+
     this.setupMeyda(audioInput);
     requestAnimationFrame(this.trackAverageLoudness);
     requestAnimationFrame(this.trackPeaks);
@@ -92,6 +97,10 @@ export class AudioData {
     let featureList = Meyda.listAvailableFeatureExtractors();
     // remove spectralFlux from the featureList bc it crashes
     featureList = featureList.filter(f => f !== 'spectralFlux');
+    this.features = {}
+    for(const feature of featureList) {
+      this.features[feature] = 0;
+    }
     const analyzer = Meyda.createMeydaAnalyzer({
       audioContext: this.context,
       source: audioInput,
@@ -99,9 +108,14 @@ export class AudioData {
       featureExtractors: featureList,
       callback: features => {
         // console.log(features)
-        this.features = features;
+        this.features = {...this.features, ...features};
       }
     });
+
+    for(const feature in this.features) {
+      this.features[feature] = 0;
+      console.log(feature)
+    }
     analyzer.start();
   }
 
@@ -147,25 +161,6 @@ export class AudioData {
     const frequencyData = new Uint8Array(size);
     this.analyser.getByteFrequencyData(frequencyData);
     return frequencyData
-  }
-
-  getBPM = () => {
-    // console.log(this.peaks)
-    // find the time between peaks
-    const peakTimes = [];
-    for (let i = 1; i < this.peaks.length; i++) {
-      peakTimes.push(this.peaks[i] - this.peaks[i - 1]);
-    }
-    // find the average time between peaks
-    const averagePeakTime = peakTimes.reduce((a, b) => a + b) / peakTimes.length;
-    if (averagePeakTime > 1000) {
-      return 2;
-    }
-
-    // convert to beats per minute
-    const bpm = 60 * 1000 / averagePeakTime;
-    console.log('bpm', bpm)
-    return bpm;
   }
 
   getPeaks = (waveform) => {

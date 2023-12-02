@@ -1,202 +1,320 @@
-import { AudioData } from "./AudioData.js";
-import { initAutoResize } from "./resize.js";
 import { createShader, tagObject } from "./shaderUtils.js";
-
+import { StatTracker } from "./StatTracker.js";
 export class ShaderToy {
-  /**
-   *
-   * @param {HTMLCanvasElement} canvas
-   * @param {AudioData} audioData
-   * @param {string} shaderUrl
-   */
-  constructor(canvas, audioData) {
+  constructor(canvas, audioData, shaderUrl, initialImageUrl) {
     this.canvas = canvas;
     this.audioData = audioData;
+    this.shaderUrl = shaderUrl;
+    this.initialImageUrl = initialImageUrl || "/public/placeholder-image.png"
     this.gl = canvas.getContext("webgl2");
+    this.pixels = new Uint8Array(canvas.width * canvas.height * 4); // 4 channels (RGBA) per pixel
     this.startTime = performance.now();
-  }
-
-  writeAudioDataToTexture = () => {
-    const frequencyData = this.audioData.getFrequencyData();
-    const waveform = this.audioData.getWaveform();
-    const lastHalfOfWaveform = waveform.slice(waveform.length / 2);
-
-    this.gl.bindTexture(this.gl.TEXTURE_2D, this.state.audioTexture);
-    this.gl.texSubImage2D(this.gl.TEXTURE_2D, 0, 0, 0, frequencyData.length, 1, this.gl.RED, this.gl.UNSIGNED_BYTE, frequencyData);
-    this.gl.texSubImage2D(this.gl.TEXTURE_2D, 0, 0, 1, lastHalfOfWaveform.length, 1, this.gl.RED, this.gl.UNSIGNED_BYTE, lastHalfOfWaveform);
-    this._cleanup();
-  }
-
-  singleFrame = () => {
-    if (!this.running) return;
-    this.writeAudioDataToTexture();
-    this.gl.useProgram(this.state.program);
-    this.gl.bindTexture(this.gl.TEXTURE_2D, this.state.audioTexture);
-    this.gl.bindVertexArray(this.state.vao);
-    this.gl.uniform3f(this.state.attribs.iResolution, this.canvas.width, this.canvas.height, 1.0);
-    this.gl.uniform1f(this.state.attribs.iTime, (performance.now() - this.startTime) / 1000);
-    this.gl.uniform1i(this.state.attribs.iIters, this.audioData.getBPM());
-    this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
-
-    this._cleanup();
-    requestAnimationFrame(this.singleFrame);
-  }
-
-  start = async () => {
-    this.running = true;
-    initAutoResize(this.canvas);
-
-    this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
-
-    const textureVerticesBuffer = this._createTextureVerticesBuffer()
-    const textureCoordsBuffer = this._createTextureCoordsBuffer()
-    const audioTexture = this._createAudioTexture(this.audioData.getFrequencyData().length)
-
-    const { program, vao, attribs } = await this._createRenderProgram(textureVerticesBuffer, textureCoordsBuffer)
-
     this.state = {
-      textureVerticesBuffer,
-      textureCoordsBuffer,
-      audioTexture,
-      program,
-      vao,
-      attribs,
+      audioUniforms: {},
+    };
+    this.audioStatTrackers = {};
+
+    // Enable the GMAN_debug_helper extension
+    const ext = this.gl.getExtension('GMAN_debug_helper');
+    if (ext) {
+      ext.setConfiguration({
+        warnUndefinedUniforms: false,
+      });
     }
-
-    this._cleanup();
-    requestAnimationFrame(this.singleFrame);
-  }
-
-  stop = () => {
-    this.running = false;
-  }
-
-  _cleanup = () => {
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
-    this.gl.bindBuffer(this.gl.TRANSFORM_FEEDBACK_BUFFER, null);
-    this.gl.bindBufferBase(this.gl.TRANSFORM_FEEDBACK_BUFFER, 0, null);
-    this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
-    this.gl.bindTexture(this.gl.TEXTURE_2D, null);
-    this.gl.bindTransformFeedback(this.gl.TRANSFORM_FEEDBACK, null);
-    this.gl.bindVertexArray(null);
-    this.gl.disable(this.gl.RASTERIZER_DISCARD);
-  }
-
-  /**
- * @returns {WebGlBuffer}
- */
-  _createTextureVerticesBuffer = () => {
-    this._cleanup()
-    const buffer = this.gl.createBuffer()
-    tagObject(this.gl, buffer, "textureVerticesBuffer")
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer)
-    this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array([
-      // triangle 1
-      -1, -1,
-      -1, 1,
-      1, -1,
-      // triangle 2
-      1, -1,
-      -1, 1,
-      1, 1,
-    ]), this.gl.STATIC_DRAW) // Two triangles covering the entire screen
-    this._cleanup()
-    return buffer
   }
 
   _createAudioTexture = (size) => {
-    const texture = this.gl.createTexture()
-    tagObject(this.gl, texture, "audioTexture")
-    this.gl.bindTexture(this.gl.TEXTURE_2D, texture)
-    this.gl.pixelStorei(this.gl.UNPACK_ALIGNMENT, 1);
-    this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.R8, size, 2, 0, this.gl.RED, this.gl.UNSIGNED_BYTE, null)
-    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST)
-    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST)
-    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE)
-    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE)
-    this._cleanup()
-    return texture
+    const { gl } = this;
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, size, 2, 0, gl.RED, gl.UNSIGNED_BYTE, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    return texture;
+  };
+
+  initAudioUniforms = () => {
+    const { gl, audioData } = this;
+    const program = this.state.program;
+
+    for (const key in audioData.features) {
+      if (typeof audioData.features[key] === "number") {
+        //console.log(`initializing audio uniform for ${key}`);
+        // Create uniform locations for each audio feature
+        this.state.audioUniforms[key] = gl.getUniformLocation(program, key);
+      }
+    }
+    this.state.audioUniforms.bpm = gl.getUniformLocation(program, "bpm");
+
+    // Create the audio texture
+    this.state.audioTexture = this._createAudioTexture(1024);
+  };
+
+  render
+  writeAudioDataToTexture = () => {
+    const { gl, audioData, state } = this;
+    gl.bindTexture(gl.TEXTURE_2D, state.audioTexture);
+
+    //
+    const fft = audioData.getFrequencyData();
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, fft.length, 1, gl.RED, gl.UNSIGNED_BYTE, fft);
+    // write to iChannel0
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, state.audioTexture);
+    if (state.iChannel0Location) {
+      gl.uniform1i(state.iChannel0Location, 0);
+    }
+    gl.uniform1f(state.iBpmLocation, audioData.bpm || 10)
+  };
+
+  initializeAudioStatTrackers = () => {
+    //console.log('initializing audio stat trackers')
+    //console.log(this.audioData.features)
+    for (const key in this.audioData.features) {
+      if (typeof this.audioData.features[key] === "number") {
+        //console.log('initializing audio stat tracker for', key)
+        this.audioStatTrackers[key] = new StatTracker(50000);
+      }
+    }
+    this.audioStatTrackers.bpm = new StatTracker(50000);
   }
 
-  /**
-   * @returns {WebGlBuffer}
-   */
-  _createTextureCoordsBuffer = () => {
-    const buffer = this.gl.createBuffer()
-    tagObject(this.gl, buffer, "textureCoordsBuffer")
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer)
-    this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array([
-      // triangle 1
-      0, 0,
-      0, 1,
-      1, 0,
-      // triangle 2
-      1, 0,
-      0, 1,
-      1, 1,
-    ]), this.gl.STATIC_DRAW) // Two triangles covering the entire texture
-    this._cleanup()
-    return buffer
+  initializeAudioStatTrackerUniforms = () => {
+    const { gl, audioStatTrackers } = this;
+    const program = this.state.program;
+
+    for (const key in audioStatTrackers) {
+      const statTracker = audioStatTrackers[key];
+      const { zScore, mean, standardDeviation, min,max } = statTracker.get();
+      this.state.audioUniforms[`${key}Zscore`] = gl.getUniformLocation(program, `${key}ZScore`);
+      gl.uniform1f(this.state.audioUniforms[`${key}ZScore`], zScore);
+
+      this.state.audioUniforms[`${key}Mean`] = gl.getUniformLocation(program, `${key}Mean`);
+      gl.uniform1f(this.state.audioUniforms[`${key}StandardDeviation`], standardDeviation);
+
+      this.state.audioUniforms[`${key}Min`] = gl.getUniformLocation(program, `${key}Min`);
+      gl.uniform1f(this.state.audioUniforms[`${key}Min`], min);
+
+      this.state.audioUniforms[`${key}Max`] = gl.getUniformLocation(program, `${key}Max`);
+      gl.uniform1f(this.state.audioUniforms[`${key}Max`], max);
+    }
   }
 
-  /**
-   * @param {WebGlBuffer} textureVertices
-   * @param {WebGlBuffer} textureCoords
-   * @returns {Promise<{computeProgram: WebGlProgram, renderVao: WebGlVertexArrayObject}>}
-   */
-  _createRenderProgram = async (textureVertices, textureCoords) => {
-    const program = await createRenderProgram(this.gl);
-    tagObject(this.gl, program, "program")
+  init = async () => {
+    await this.audioData.start();
+    this.initializeAudioStatTrackers();
 
-    const vao = this.gl.createVertexArray()
-    tagObject(this.gl, vao, "vao")
-    bindRenderBuffer(this.gl, program, vao, textureVertices, textureCoords)
+    const { gl } = this;
+    const program = await this.createRenderProgram();
+    this.imageTexture = await this.createImageTexture(this.initialImageUrl);
+    const positionBuffer = this.createPositionBuffer();
+    const vao = gl.createVertexArray();
+    gl.bindVertexArray(vao);
+    gl.enableVertexAttribArray(gl.getAttribLocation(program, "inPosition"));
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
 
-    const attribs = {
-      iResolution: this.gl.getUniformLocation(program, "iResolution"),
-      iTime: this.gl.getUniformLocation(program, "iTime"),
-      iIters: this.gl.getUniformLocation(program, "iIters"),
+    this.state.program = program;
+    this.state.vao = vao;
+    this.state.iResolution = gl.getUniformLocation(program, "iResolution");
+    this.state.iTime = gl.getUniformLocation(program, "iTime");
+    this.state.iChannel1Location = gl.getUniformLocation(program, "iChannel1");
+
+    // Initialize audio feature uniforms
+    this.initAudioUniforms();
+    this.initializeAudioStatTrackerUniforms();
+    //console.log('made it out of the init function')
+    requestAnimationFrame(this.render);
+  };
+
+  createPositionBuffer = () => {
+    const { gl } = this;
+    const buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, -1, 1, 1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    return buffer;
+  };
+
+  createRenderProgram = async () => {
+    const { gl, shaderUrl } = this;
+    const program = gl.createProgram();
+
+    const vertexShader = await createShader(gl, gl.VERTEX_SHADER, `/src/shaders/generic-vertex.glsl`);
+    const fragmentShader = await createShader(gl, gl.FRAGMENT_SHADER, `/src/shaders/${shaderUrl}.glsl`);
+
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+
+    gl.linkProgram(program);
+
+    // Check for linking status
+    const status = gl.getProgramParameter(program, gl.LINK_STATUS);
+    if (!status) {
+      console.error(`Could not link render program: ${gl.getProgramInfoLog(program)}`);
+      throw new Error(`Could not link render program. ${gl.getProgramInfoLog(program)}\n`);
     }
 
-    this._cleanup()
-    return { program, vao, attribs }
+    // Use the program to retrieve the uniform locations
+    gl.useProgram(program);
+
+    // Get the location of iChannel0 and iChannel1 if they exist
+    const iChannel0Location = gl.getUniformLocation(program, "iChannel0");
+    const iChannel1Location = gl.getUniformLocation(program, "iChannel1");
+
+    this.state.iBpmLocation = gl.getUniformLocation(program, "bpm");
+
+
+
+    // Create uniform locations for each audio feature from the audioData map
+    for (const key in this.audioData.features) {
+      if (typeof this.audioData.features[key] === "number") {
+        //console.log('creating uniform location for', key);
+        this.state.audioUniforms[key] = gl.getUniformLocation(program, key);
+      }
+    }
+    // set uniform locations for each audio stat tracker
+    for (const key in this.audioStatTrackers) {
+      this.state.audioUniforms[`${key}ZScore`] = gl.getUniformLocation(program, `${key}ZScore`);
+      this.state.audioUniforms[`${key}Mean`] = gl.getUniformLocation(program, `${key}Mean`);
+      this.state.audioUniforms[`${key}StandardDeviation`] = gl.getUniformLocation(program, `${key}StandardDeviation`);
+      this.state.audioUniforms[`${key}Min`] = gl.getUniformLocation(program, `${key}Min`);
+      this.state.audioUniforms[`${key}Max`] = gl.getUniformLocation(program, `${key}Max`);
+    }
+
+
+    // Set iChannel0 and iChannel1 locations if found
+    // Set other uniform locations like iResolution and iTime
+    this.state.iChannel0Location = iChannel0Location;
+    this.state.iChannel1Location = iChannel1Location;
+    this.state.iResolution = gl.getUniformLocation(program, "iResolution");
+    this.state.iTime = gl.getUniformLocation(program, "iTime");
+
+    return program;
+  };
+
+  createImageTexture = async (url) => {
+    const { gl } = this;
+    const image = await new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = url;
+    });
+
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+    // Upload the image into the texture
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+
+    return texture;
+  };
+
+  renderAudioData = () => {
+    const { gl, audioData, state } = this;
+    for (const key in audioData.features) {
+      if (typeof audioData.features[key] === "number") {
+        // Update the audio texture and corresponding uniform values
+
+        const statTracker = this.audioStatTrackers[key];
+        statTracker.set(audioData.features[key] || 0);
+
+        gl.uniform1f(state.audioUniforms[key], audioData.features[key] || 0);
+        tagObject(gl, state.audioUniforms[key], key);
+      }
+      const statTracker = this.audioStatTrackers.bpm;
+      statTracker.set(audioData.bpm || 10);
+      gl.uniform1f(state.audioUniforms.bpm, audioData.bpm || 10);
+    }
   }
-}
 
-/**
- * @param {WebGL2RenderingContext} gl
- * @param {string} shaderPathPrefix
- * @returns {Promise<WebGLProgram>}
- */
-const createRenderProgram = async (gl) => {
-  const program = gl.createProgram()
+  renderAudioStatTrackers = () => {
+    const { gl } = this;
+    for (const key in this.audioStatTrackers) {
+      const statTracker = this.audioStatTrackers[key];
+      const { zScore, mean, standardDeviation, min,max } = statTracker.get();
+      let keyName = `${key}ZScore`;
+      gl.uniform1f(this.state.audioUniforms[keyName], zScore || -1);
+      tagObject(gl, this.state.audioUniforms[keyName], keyName);
 
-  gl.attachShader(program, await createShader(gl, gl.VERTEX_SHADER, `/src/shaders/generic-vertex.glsl`))
-  gl.attachShader(program, await createShader(gl, gl.FRAGMENT_SHADER, `/src/shaders/fractal-audio-01.glsl`))
+      keyName = `${key}Mean`;
+      gl.uniform1f(this.state.audioUniforms[`${key}Mean`], mean || -1);
+      tagObject(gl, this.state.audioUniforms[keyName], keyName);
 
-  gl.linkProgram(program);
+      keyName = `${key}StandardDeviation`;
+      gl.uniform1f(this.state.audioUniforms[`${key}StandardDeviation`], standardDeviation || -1);
+      tagObject(gl, this.state.audioUniforms[keyName], keyName);
 
-  const status = gl.getProgramParameter(program, gl.LINK_STATUS);
-  if (!status) {
-    throw new Error(`Could not link render program. ${gl.getProgramInfoLog(program)}\n`);
+      keyName = `${key}Min`;
+      gl.uniform1f(this.state.audioUniforms[`${key}Min`], min || -1);
+      tagObject(gl, this.state.audioUniforms[keyName], keyName);
+
+      keyName = `${key}Max`;
+      gl.uniform1f(this.state.audioUniforms[`${key}Max`], max || -1);
+      tagObject(gl, this.state.audioUniforms[keyName], keyName);
+
+    }
+    const energyStatTracker = this.audioStatTrackers.energy;
+    // console.log(energyStatTracker.get());
   }
-  return program;
-}
+  render = () => {
+    if (!this.running) return;
+    const { gl, state } = this;
+    const { pixels, canvas } = this;
+    const { width, height } = canvas;
 
-/**
- * @param {WebGL2RenderingContext} gl
- * @param {WebGLProgram} program
- * @param {WebGLVertexArrayObject} vao
- * @param {WebGLBuffer} texturePositions
- * @param {WebGLBuffer} textureCoords
- */
-const bindRenderBuffer = (gl, program, vao, texturePositions, textureCoords) => {
-  const positionAttrib = gl.getAttribLocation(program, "inPosition");
-  // const texCoordsAttrib = gl.getAttribLocation(program, "inTexCoord");
+    gl.bindVertexArray(state.vao);
+    gl.uniform3f(state.iResolution, this.canvas.width, this.canvas.height, 1.0);
+    gl.uniform1f(state.iTime, (performance.now() - this.startTime) / 1000);
 
-  gl.bindVertexArray(vao);
+    this.writeAudioDataToTexture();
+    gl.useProgram(state.program);
+    gl.bindVertexArray(state.vao);
 
-  gl.bindBuffer(gl.ARRAY_BUFFER, texturePositions);
-  gl.enableVertexAttribArray(positionAttrib);
-  gl.vertexAttribPointer(positionAttrib, 2, gl.FLOAT, false, 0, 0);
+    // Set the texture for iChannel1
+    if (state.iChannel1Location) {
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D, this.imageTexture);
+      gl.uniform1i(state.iChannel1Location, 1);
+    }
+
+    if (state.iChannel0Location) {
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, state.audioTexture);
+    }
+
+    this.renderAudioData();
+    this.renderAudioStatTrackers();
+
+    // Draw
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    gl.readPixels(0, 0, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+
+    this.imageTexture = texture;
+    requestAnimationFrame(this.render);
+  };
+
+  start = () => {
+    this.running = true;
+    requestAnimationFrame(this.render);
+  };
+
+  stop = () => {
+    this.running = false;
+  };
 }

@@ -38,6 +38,13 @@ uniform float spectralRolloffMin;
 uniform float spectralRolloffMax;
 uniform float spectralRolloffZScore;
 
+//spectralSlope
+uniform float spectralSlope;
+uniform float spectralSlopeMin;
+uniform float spectralSlopeMax;
+uniform float spectralSlopeZScore;
+
+
 // Function to render a colored bar based on a single uniform value and bar number
 vec3 renderBar(float uniformValue, float uniformMin, float uniformMax, float uniformZScore, int barNumber, vec2 fragCoord)
 {
@@ -85,9 +92,12 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec3 color4 = renderBar(spectralSkewness, spectralSkewnessMin, spectralSkewnessMax, spectralSkewnessZScore, 3, fragCoord);
     // spectralRolloff
     vec3 color5 = renderBar(spectralRolloff, spectralRolloffMin, spectralRolloffMax, spectralRolloffZScore, 4, fragCoord);
+    // spectralSlope
+    vec3 color6 = renderBar(spectralSlope, spectralSlopeMin, spectralSlopeMax, spectralSlopeZScore, 5, fragCoord);
+
 
     // Combine the colors of the bars with the previous frame's color
-    vec3 finalColor = color1 + color2 + color3 + color4 + color5;
+    vec3 finalColor = color1 + color2 + color3 + color4 + color5 + color6;
     //
     // Darken the previous frame's color by multiplying it with a value less than 1
     finalColor = mix(previousFrameColor.rgb, finalColor, 0.01); // Adjust the 0.95 value to control the darkening rate

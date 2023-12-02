@@ -87,10 +87,19 @@ export class ShaderToy {
 
     for (const key in audioStatTrackers) {
       const statTracker = audioStatTrackers[key];
+      const { zScore, mean, standardDeviation, min,max } = statTracker.get();
+      console.log({zScore, mean, standardDeviation, min,max})
       this.state.audioUniforms[`${key}Zscore`] = gl.getUniformLocation(program, `${key}ZScore`);
-      gl.uniform1f(this.state.audioUniforms[`${key}ZScore`], statTracker.zScore);
+      gl.uniform1f(this.state.audioUniforms[`${key}ZScore`], zScore);
+
       this.state.audioUniforms[`${key}Mean`] = gl.getUniformLocation(program, `${key}Mean`);
-      gl.uniform1f(this.state.audioUniforms[`${key}StandardDeviation`], statTracker.standardDeviation);
+      gl.uniform1f(this.state.audioUniforms[`${key}StandardDeviation`], standardDeviation);
+
+      this.state.audioUniforms[`${key}Min`] = gl.getUniformLocation(program, `${key}Min`);
+      gl.uniform1f(this.state.audioUniforms[`${key}Min`], min);
+
+      this.state.audioUniforms[`${key}Max`] = gl.getUniformLocation(program, `${key}Max`);
+      gl.uniform1f(this.state.audioUniforms[`${key}Max`], max);
     }
   }
 
@@ -171,6 +180,8 @@ export class ShaderToy {
       this.state.audioUniforms[`${key}ZScore`] = gl.getUniformLocation(program, `${key}ZScore`);
       this.state.audioUniforms[`${key}Mean`] = gl.getUniformLocation(program, `${key}Mean`);
       this.state.audioUniforms[`${key}StandardDeviation`] = gl.getUniformLocation(program, `${key}StandardDeviation`);
+      this.state.audioUniforms[`${key}Min`] = gl.getUniformLocation(program, `${key}Min`);
+      this.state.audioUniforms[`${key}Max`] = gl.getUniformLocation(program, `${key}Max`);
     }
 
 
@@ -211,9 +222,15 @@ export class ShaderToy {
     for (const key in audioData.features) {
       if (typeof audioData.features[key] === "number") {
         // Update the audio texture and corresponding uniform values
+
+        const statTracker = this.audioStatTrackers[key];
+        statTracker.set(audioData.features[key] || 0);
+
         gl.uniform1f(state.audioUniforms[key], audioData.features[key] || 0);
         tagObject(gl, state.audioUniforms[key], key);
       }
+      const statTracker = this.audioStatTrackers.bpm;
+      statTracker.set(audioData.bpm || 10);
       gl.uniform1f(state.audioUniforms.bpm, audioData.bpm || 10);
     }
   }
@@ -222,18 +239,27 @@ export class ShaderToy {
     const { gl } = this;
     for (const key in this.audioStatTrackers) {
       const statTracker = this.audioStatTrackers[key];
-      const { zScore, mean, standardDeviation } = statTracker;
+      const { zScore, mean, standardDeviation, min,max } = statTracker.get();
       let keyName = `${key}ZScore`;
-      //console.log({keyName})
       gl.uniform1f(this.state.audioUniforms[keyName], zScore || -1);
       tagObject(gl, this.state.audioUniforms[keyName], keyName);
+
       keyName = `${key}Mean`;
-      //console.log({keyName})
       gl.uniform1f(this.state.audioUniforms[`${key}Mean`], mean || -1);
       tagObject(gl, this.state.audioUniforms[keyName], keyName);
+
       keyName = `${key}StandardDeviation`;
       gl.uniform1f(this.state.audioUniforms[`${key}StandardDeviation`], standardDeviation || -1);
       tagObject(gl, this.state.audioUniforms[keyName], keyName);
+
+      keyName = `${key}Min`;
+      gl.uniform1f(this.state.audioUniforms[`${key}Min`], min || -1);
+      tagObject(gl, this.state.audioUniforms[keyName], keyName);
+
+      keyName = `${key}Max`;
+      gl.uniform1f(this.state.audioUniforms[`${key}Max`], max || -1);
+      tagObject(gl, this.state.audioUniforms[keyName], keyName);
+
     }
   }
   render = () => {

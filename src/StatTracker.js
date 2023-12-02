@@ -5,6 +5,8 @@ class StatTracker {
     this.mean = -1;
     this.standardDeviation = -1;
     this.zScore = -1;
+    this.min = Infinity;
+    this.max = -Infinity;
   }
 
   set(value) {
@@ -12,7 +14,19 @@ class StatTracker {
     this.values.push(value);
 
     if (this.values.length > this.historySize) {
-      this.values.shift();
+      const removedValue = this.values.shift();
+      if (removedValue === this.min) {
+        // Recalculate min if the removed value was the minimum
+        this.min = Math.min(...this.values);
+      }
+      if (removedValue === this.max) {
+        // Recalculate max if the removed value was the maximum
+        this.max = Math.max(...this.values);
+      }
+    } else {
+      // Initialize min and max if history is not yet full
+      this.min = Math.min(this.min, value);
+      this.max = Math.max(this.max, value);
     }
 
     this.calculateMeanAndStandardDeviation();
@@ -20,9 +34,11 @@ class StatTracker {
 
   get() {
     return {
-      mean: this.mean,
-      standardDeviation: this.standardDeviation,
-      zScore: this.zScore,
+      mean: this.mean || -1,
+      standardDeviation: this.standardDeviation || -1,
+      zScore: this.zScore || -1,
+      min: this.min == Infinity ? -1 : this.min,
+      max: this.max == -Infinity ? -1 : this.max,
     };
   }
 

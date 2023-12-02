@@ -58,6 +58,12 @@ export class ShaderToy {
         tagObject(gl, state[key], key);
       }
     }
+    const fft = audioData.getFrequencyData();
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, fft.length, 1, gl.RED, gl.UNSIGNED_BYTE, fft);
+    // write to iChannel0
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, state.audioTexture);
+    gl.uniform1i(state.iChannel0Location, 0);
   };
 
   init = async () => {

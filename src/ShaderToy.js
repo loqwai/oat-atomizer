@@ -1,5 +1,5 @@
 import { createShader, tagObject } from "./shaderUtils.js";
-import {StatTracker} from "./StatTracker.js";
+import { StatTracker } from "./StatTracker.js";
 export class ShaderToy {
   constructor(canvas, audioData, shaderUrl, initialImageUrl) {
     this.canvas = canvas;
@@ -63,7 +63,9 @@ export class ShaderToy {
     // write to iChannel0
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, state.audioTexture);
-    gl.uniform1i(state.iChannel0Location, 0);
+    if (state.iChannel0Location) {
+      gl.uniform1i(state.iChannel0Location, 0);
+    }
     gl.uniform1f(state.iBpmLocation, audioData.bpm || 10)
   };
 
@@ -88,7 +90,7 @@ export class ShaderToy {
       this.state.audioUniforms[`${key}Zscore`] = gl.getUniformLocation(program, `${key}ZScore`);
       gl.uniform1f(this.state.audioUniforms[`${key}ZScore`], statTracker.zScore);
       this.state.audioUniforms[`${key}Mean`] = gl.getUniformLocation(program, `${key}Mean`);
-      gl.uniform1f(this.state.audioUniforms[`${key}standardDistribution`], statTracker.standardDeviation);
+      gl.uniform1f(this.state.audioUniforms[`${key}StandardDeviation`], statTracker.standardDeviation);
     }
   }
 
@@ -156,10 +158,6 @@ export class ShaderToy {
     this.state.iBpmLocation = gl.getUniformLocation(program, "bpm");
 
 
-    // Check if iChannel1 is declared and used in the shader
-    if (iChannel1Location === null) {
-      console.warn("iChannel1Location is null. Check if iChannel1 is declared and used in the shader.");
-    }
 
     // Create uniform locations for each audio feature from the audioData map
     for (const key in this.audioData.features) {
@@ -172,18 +170,11 @@ export class ShaderToy {
     for (const key in this.audioStatTrackers) {
       this.state.audioUniforms[`${key}ZScore`] = gl.getUniformLocation(program, `${key}ZScore`);
       this.state.audioUniforms[`${key}Mean`] = gl.getUniformLocation(program, `${key}Mean`);
-      this.state.audioUniforms[`${key}standardDistribution`] = gl.getUniformLocation(program, `${key}standardDistribution`);
+      this.state.audioUniforms[`${key}StandardDeviation`] = gl.getUniformLocation(program, `${key}StandardDeviation`);
     }
 
 
     // Set iChannel0 and iChannel1 locations if found
-    if (iChannel0Location !== null) {
-      gl.uniform1i(iChannel0Location, 0);
-    }
-    if (iChannel1Location !== null) {
-      gl.uniform1i(iChannel1Location, 1);
-    }
-
     // Set other uniform locations like iResolution and iTime
     this.state.iChannel0Location = iChannel0Location;
     this.state.iChannel1Location = iChannel1Location;
@@ -231,7 +222,7 @@ export class ShaderToy {
     const { gl } = this;
     for (const key in this.audioStatTrackers) {
       const statTracker = this.audioStatTrackers[key];
-      const {zScore, mean, standardDeviation} = statTracker;
+      const { zScore, mean, standardDeviation } = statTracker;
       let keyName = `${key}ZScore`;
       //console.log({keyName})
       gl.uniform1f(this.state.audioUniforms[keyName], zScore || -1);
@@ -240,8 +231,8 @@ export class ShaderToy {
       //console.log({keyName})
       gl.uniform1f(this.state.audioUniforms[`${key}Mean`], mean || -1);
       tagObject(gl, this.state.audioUniforms[keyName], keyName);
-      keyName = `${key}standardDistribution`;
-      gl.uniform1f(this.state.audioUniforms[`${key}standardDistribution`], standardDeviation || -1);
+      keyName = `${key}StandardDeviation`;
+      gl.uniform1f(this.state.audioUniforms[`${key}StandardDeviation`], standardDeviation || -1);
       tagObject(gl, this.state.audioUniforms[keyName], keyName);
     }
   }

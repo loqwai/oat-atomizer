@@ -88,7 +88,6 @@ export class ShaderToy {
     for (const key in audioStatTrackers) {
       const statTracker = audioStatTrackers[key];
       const { zScore, mean, standardDeviation, min,max } = statTracker.get();
-      console.log({zScore, mean, standardDeviation, min,max})
       this.state.audioUniforms[`${key}Zscore`] = gl.getUniformLocation(program, `${key}ZScore`);
       gl.uniform1f(this.state.audioUniforms[`${key}ZScore`], zScore);
 
@@ -261,7 +260,9 @@ export class ShaderToy {
       tagObject(gl, this.state.audioUniforms[keyName], keyName);
 
     }
-  }
+    const energyStatTracker = this.audioStatTrackers.energy;
+  //   console.log(energyStatTracker.get());
+  // }
   render = () => {
     if (!this.running) return;
     const { gl, state } = this;

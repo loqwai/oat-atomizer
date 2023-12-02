@@ -2,21 +2,20 @@ class StatTracker {
   constructor(historySize) {
     this.historySize = historySize;
     this.values = [];
-    this.mean = NaN;
-    this.standardDeviation = NaN;
-    this.zScore = NaN;
+    this.mean = -1;
+    this.standardDeviation = -1;
+    this.zScore = -1;
   }
 
   set(value) {
-    if (typeof value === 'number') {
-      this.values.push(value);
+    if (typeof value !== 'number') throw new Error('StatTracker can only track numbers');
+    this.values.push(value);
 
-      if (this.values.length > this.historySize) {
-        this.values.shift();
-      }
-
-      this.calculateMeanAndStandardDeviation();
+    if (this.values.length > this.historySize) {
+      this.values.shift();
     }
+
+    this.calculateMeanAndStandardDeviation();
   }
 
   get() {
@@ -29,9 +28,9 @@ class StatTracker {
 
   calculateMeanAndStandardDeviation() {
     if (this.values.length === 0) {
-      this.mean = NaN;
-      this.standardDeviation = NaN;
-      this.zScore = NaN;
+      this.mean = -1;
+      this.standardDeviation = -1;
+      this.zScore = -1;
       return;
     }
 

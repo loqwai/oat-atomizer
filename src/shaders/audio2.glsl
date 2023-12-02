@@ -8,7 +8,7 @@ uniform vec3 iResolution;
 uniform float iTime;
 uniform sampler2D iChannel0;
 uniform float energy;
-
+uniform float energyZScore;
 out vec4 fragColor;
 
 vec4 Line(vec2 uv, float speed, float height, vec3 col, float audioAmplitude) {
@@ -16,6 +16,8 @@ vec4 Line(vec2 uv, float speed, float height, vec3 col, float audioAmplitude) {
 
     // Adjust wave speed based on energy
     speed *= (1.0 + energy);
+    // if energyZScore is high, change the wave color to red
+    col = mix(col, vec3(1.0, 0.0, 0.0), energyZScore);
 
     uv.y += S(1.0, 0.0, abs(uv.x)) * sin(iTime * speed + uv.x * height) * waveAmplitude;
 

@@ -1,5 +1,5 @@
 import { createShader, tagObject } from "./shaderUtils.js";
-
+import {StatTracker} from "./StatTracker.js";
 export class ShaderToy {
   constructor(canvas, audioData, shaderUrl, initialImageUrl) {
     this.canvas = canvas;
@@ -9,7 +9,10 @@ export class ShaderToy {
     this.gl = canvas.getContext("webgl2");
     this.pixels = new Uint8Array(canvas.width * canvas.height * 4); // 4 channels (RGBA) per pixel
     this.startTime = performance.now();
-    this.state = {};
+    this.state = {
+      audioUniforms: {},
+    };
+    this.audioStatTrackers = {};
 
     // Enable the GMAN_debug_helper extension
     const ext = this.gl.getExtension('GMAN_debug_helper');
@@ -38,28 +41,23 @@ export class ShaderToy {
 
     for (const key in audioData.features) {
       if (typeof audioData.features[key] === "number") {
+        console.log(`initializing audio uniform for ${key}`);
         // Create uniform locations for each audio feature
-        this.state[key] = gl.getUniformLocation(program, key);
+        this.state.audioUniforms[key] = gl.getUniformLocation(program, key);
       }
     }
-    this.state.bpm = gl.getUniformLocation(program, "bpm");
+    this.state.audioUniforms.bpm = gl.getUniformLocation(program, "bpm");
 
     // Create the audio texture
     this.state.audioTexture = this._createAudioTexture(1024);
   };
 
+  render
   writeAudioDataToTexture = () => {
     const { gl, audioData, state } = this;
     gl.bindTexture(gl.TEXTURE_2D, state.audioTexture);
 
-    for (const key in audioData.features) {
-      if (typeof audioData.features[key] === "number") {
-        // Update the audio texture and corresponding uniform values
-        gl.uniform1f(state[key], audioData.features[key] || 0);
-        tagObject(gl, state[key], key);
-      }
-      gl.uniform1f(state.bpm, audioData.bpm || 10);
-    }
+    //
     const fft = audioData.getFrequencyData();
     gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, fft.length, 1, gl.RED, gl.UNSIGNED_BYTE, fft);
     // write to iChannel0
@@ -69,11 +67,37 @@ export class ShaderToy {
     gl.uniform1f(state.iBpmLocation, audioData.bpm || 10)
   };
 
+  initializeAudioStatTrackers = () => {
+    console.log('initializing audio stat trackers')
+    console.log(this.audioData.features)
+    for (const key in this.audioData.features) {
+      if (typeof this.audioData.features[key] === "number") {
+        console.log('initializing audio stat tracker for', key)
+        this.audioStatTrackers[key] = new StatTracker(60 * 5);
+      }
+    }
+    this.audioStatTrackers.bpm = new StatTracker(60 * 5);
+  }
+
+  initializeAudioStatTrackerUniforms = () => {
+    const { gl, audioStatTrackers } = this;
+    const program = this.state.program;
+
+    for (const key in audioStatTrackers) {
+      const statTracker = audioStatTrackers[key];
+      this.state.audioUniforms[`${key}Zscore`] = gl.getUniformLocation(program, `${key}ZScore`);
+      gl.uniform1f(this.state.audioUniforms[`${key}ZScore`], statTracker.zScore);
+      this.state.audioUniforms[`${key}Mean`] = gl.getUniformLocation(program, `${key}Mean`);
+      gl.uniform1f(this.state.audioUniforms[`${key}standardDistribution`], statTracker.standardDeviation);
+    }
+  }
+
   init = async () => {
     await this.audioData.start();
+    this.initializeAudioStatTrackers();
+
     const { gl } = this;
     const program = await this.createRenderProgram();
-    console.log(this.initialImageUrl)
     this.imageTexture = await this.createImageTexture(this.initialImageUrl);
     const positionBuffer = this.createPositionBuffer();
     const vao = gl.createVertexArray();
@@ -90,6 +114,7 @@ export class ShaderToy {
 
     // Initialize audio feature uniforms
     this.initAudioUniforms();
+    this.initializeAudioStatTrackerUniforms();
     console.log('made it out of the init function')
     requestAnimationFrame(this.render);
   };
@@ -139,8 +164,15 @@ export class ShaderToy {
     // Create uniform locations for each audio feature from the audioData map
     for (const key in this.audioData.features) {
       if (typeof this.audioData.features[key] === "number") {
-        this.state[key] = gl.getUniformLocation(program, key);
+        console.log('creating uniform location for', key);
+        this.state.audioUniforms[key] = gl.getUniformLocation(program, key);
       }
+    }
+    // set uniform locations for each audio stat tracker
+    for (const key in this.audioStatTrackers) {
+      this.state.audioUniforms[`${key}ZScore`] = gl.getUniformLocation(program, `${key}ZScore`);
+      this.state.audioUniforms[`${key}Mean`] = gl.getUniformLocation(program, `${key}Mean`);
+      this.state.audioUniforms[`${key}standardDistribution`] = gl.getUniformLocation(program, `${key}standardDistribution`);
     }
 
 
@@ -183,6 +215,36 @@ export class ShaderToy {
     return texture;
   };
 
+  renderAudioData = () => {
+    const { gl, audioData, state } = this;
+    for (const key in audioData.features) {
+      if (typeof audioData.features[key] === "number") {
+        // Update the audio texture and corresponding uniform values
+        gl.uniform1f(state.audioUniforms[key], audioData.features[key] || 0);
+        tagObject(gl, state.audioUniforms[key], key);
+      }
+      gl.uniform1f(state.audioUniforms.bpm, audioData.bpm || 10);
+    }
+  }
+
+  renderAudioStatTrackers = () => {
+    const { gl } = this;
+    for (const key in this.audioStatTrackers) {
+      const statTracker = this.audioStatTrackers[key];
+      const {zScore, mean, standardDeviation} = statTracker;
+      let keyName = `${key}ZScore`;
+      console.log({keyName})
+      gl.uniform1f(this.state.audioUniforms[keyName], zScore || -1);
+      tagObject(gl, this.state.audioUniforms[keyName], keyName);
+      keyName = `${key}Mean`;
+      console.log({keyName})
+      gl.uniform1f(this.state.audioUniforms[`${key}Mean`], mean || -1);
+      tagObject(gl, this.state.audioUniforms[keyName], keyName);
+      keyName = `${key}standardDistribution`;
+      gl.uniform1f(this.state.audioUniforms[`${key}standardDistribution`], standardDeviation || -1);
+      tagObject(gl, this.state.audioUniforms[keyName], keyName);
+    }
+  }
   render = () => {
     if (!this.running) return;
     const { gl, state } = this;
@@ -209,6 +271,8 @@ export class ShaderToy {
       gl.bindTexture(gl.TEXTURE_2D, state.audioTexture);
     }
 
+    this.renderAudioData();
+    this.renderAudioStatTrackers();
 
     // Draw
     gl.drawArrays(gl.TRIANGLES, 0, 6);

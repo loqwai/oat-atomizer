@@ -75,10 +75,10 @@ export class ShaderToy {
     for (const key in this.audioData.features) {
       if (typeof this.audioData.features[key] === "number") {
         //console.log('initializing audio stat tracker for', key)
-        this.audioStatTrackers[key] = new StatTracker(100);
+        this.audioStatTrackers[key] = new StatTracker(50000);
       }
     }
-    this.audioStatTrackers.bpm = new StatTracker(100);
+    this.audioStatTrackers.bpm = new StatTracker(50000);
   }
 
   initializeAudioStatTrackerUniforms = () => {

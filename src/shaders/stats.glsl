@@ -4,7 +4,7 @@ precision highp float;
 out vec4 fragColor;
 
 uniform sampler2D iChannel0; // Audio data texture
-uniform sampler2D iChannel1; // Silhouette texture
+uniform sampler2D iChannel1; // Silhouette texture (previous frame data)
 
 uniform vec3 iResolution;
 uniform float iTime;
@@ -12,18 +12,34 @@ uniform float iTime;
 uniform float energy;
 uniform float energyMin;
 uniform float energyMax;
+uniform float energyZScore;
 
+// spectralFlatness
 uniform float spectralFlatness;
 uniform float spectralFlatnessMin;
 uniform float spectralFlatnessMax;
+uniform float spectralFlatnessZScore;
 
+// spectralCentroid
 uniform float spectralCentroid;
 uniform float spectralCentroidMin;
 uniform float spectralCentroidMax;
+uniform float spectralCentroidZScore;
 
+// spectralSkewness
+uniform float spectralSkewness;
+uniform float spectralSkewnessMin;
+uniform float spectralSkewnessMax;
+uniform float spectralSkewnessZScore;
+
+// spectralRolloff
+uniform float spectralRolloff;
+uniform float spectralRolloffMin;
+uniform float spectralRolloffMax;
+uniform float spectralRolloffZScore;
 
 // Function to render a colored bar based on a single uniform value and bar number
-vec3 renderBar(float uniformValue, float uniformMin, float uniformMax, int barNumber, vec2 fragCoord)
+vec3 renderBar(float uniformValue, float uniformMin, float uniformMax, float uniformZScore, int barNumber, vec2 fragCoord)
 {
     // Define the bar width and gap between bars
     float barWidth = 0.1; // Adjust the width as needed
@@ -37,12 +53,14 @@ vec3 renderBar(float uniformValue, float uniformMin, float uniformMax, int barNu
     if (fragCoord.x >= (barStart * iResolution.x) && fragCoord.x <= (barEnd * iResolution.x)) {
         // Normalize the uniformValue between uniformMin and uniformMax
         float normalizedValue = (uniformValue - uniformMin) / (uniformMax - uniformMin);
-        // make the bar taller or shorter based on the normalized value
+        // Make the bar taller or shorter based on the normalized value
         float barHeight = normalizedValue * iResolution.y;
         // Check if the current fragment is within the bar's height
         if (fragCoord.y <= barHeight) {
-            // Set the background color
-            return vec3(1.0, 1.0, 1.0);
+            // Calculate the redness based on the uniformZScore
+            float redness = clamp(uniformZScore / 5.0, 0.0, 1.0);
+            // Set the color of the bar with varying redness
+            return vec3(1.0 - redness, 1.0 - redness, 1.0); // Redder as ZScore goes from 0 to 5
         } else {
             // Set the background color
             return vec3(0.0, 0.0, 0.0);
@@ -53,14 +71,26 @@ vec3 renderBar(float uniformValue, float uniformMin, float uniformMax, int barNu
     }
 }
 
-
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
-    vec3 color1 = renderBar(energy, energyMin, energyMax, 0, fragCoord);
-    vec3 color2 = renderBar(spectralFlatness, spectralFlatnessMin, spectralFlatnessMax, 1, fragCoord);
-    vec3 color3 = renderBar(spectralCentroid, spectralCentroidMin, spectralCentroidMax, 2, fragCoord);
+    // Get the color of the previous frame from iChannel1
+    vec4 previousFrameColor = texture(iChannel1, fragCoord / iResolution.xy);
 
-    // Combine the colors of the bars
-    vec3 finalColor = color1 + color2 + color3;
+    // energy
+    vec3 color1 = renderBar(energy, energyMin, energyMax, energyZScore,  0, fragCoord);
+    // spectralFlatness
+    vec3 color2 = renderBar(spectralFlatness, spectralFlatnessMin, spectralFlatnessMax, spectralFlatnessZScore, 1, fragCoord);
+    // spectralCentroid
+    vec3 color3 = renderBar(spectralCentroid, spectralCentroidMin, spectralCentroidMax, spectralCentroidZScore, 2, fragCoord);
+    // spectralSkewness
+    vec3 color4 = renderBar(spectralSkewness, spectralSkewnessMin, spectralSkewnessMax, spectralSkewnessZScore, 3, fragCoord);
+    // spectralRolloff
+    vec3 color5 = renderBar(spectralRolloff, spectralRolloffMin, spectralRolloffMax, spectralRolloffZScore, 4, fragCoord);
+
+    // Combine the colors of the bars with the previous frame's color
+    vec3 finalColor = color1 + color2 + color3 + color4 + color5;
+    //
+    // Darken the previous frame's color by multiplying it with a value less than 1
+    finalColor = mix(previousFrameColor.rgb, finalColor, 0.01); // Adjust the 0.95 value to control the darkening rate
 
     // Set the output color
     fragColor = vec4(finalColor, 1.0);

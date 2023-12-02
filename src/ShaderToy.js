@@ -75,10 +75,10 @@ export class ShaderToy {
     for (const key in this.audioData.features) {
       if (typeof this.audioData.features[key] === "number") {
         //console.log('initializing audio stat tracker for', key)
-        this.audioStatTrackers[key] = new StatTracker(60 * 5);
+        this.audioStatTrackers[key] = new StatTracker(4000);
       }
     }
-    this.audioStatTrackers.bpm = new StatTracker(60 * 5);
+    this.audioStatTrackers.bpm = new StatTracker(4000);
   }
 
   initializeAudioStatTrackerUniforms = () => {
@@ -262,7 +262,7 @@ export class ShaderToy {
     }
     const energyStatTracker = this.audioStatTrackers.energy;
   //   console.log(energyStatTracker.get());
-  // }
+  }
   render = () => {
     if (!this.running) return;
     const { gl, state } = this;

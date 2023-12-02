@@ -27,14 +27,15 @@ vec3 renderBar(float uniformValue, float uniformMin, float uniformMax, int barNu
     if (fragCoord.x >= (barStart * iResolution.x) && fragCoord.x <= (barEnd * iResolution.x)) {
         // Normalize the uniformValue between uniformMin and uniformMax
         float normalizedValue = (uniformValue - uniformMin) / (uniformMax - uniformMin);
-
-        // Set the color of the bar based on normalized value (example colors)
-        if (normalizedValue >= 0.8) {
-            return vec3(0.0, 1.0, 0.0); // Green color for high values
-        } else if (normalizedValue >= 0.4) {
-            return vec3(1.0, 1.0, 0.0); // Yellow color for medium values
+        // make the bar taller or shorter based on the normalized value
+        float barHeight = normalizedValue * iResolution.y;
+        // Check if the current fragment is within the bar's height
+        if (fragCoord.y <= barHeight) {
+            // Set the background color
+            return vec3(1.0, 1.0, 1.0);
         } else {
-            return vec3(1.0, 0.0, 0.0); // Red color for low values
+            // Set the background color
+            return vec3(0.0, 0.0, 0.0);
         }
     } else {
         // Set the background color

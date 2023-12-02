@@ -8,9 +8,9 @@ uniform float iTime;
 uniform float spectralSlopeZScore;
 uniform float spectralSlopeStandardDeviation;
 uniform float spectralCentroidZScore;
-uniform float energy;
+uniform float energyZScore;
 
-const float waveAmplitudeFactor = 0.09; // Adjust this constant as needed
+const float waveAmplitudeFactor = 0.99; // Adjust this constant as needed
 
 out vec4 fragColor;
 uniform sampler2D iChannel0;
@@ -20,7 +20,7 @@ vec4 Line(vec2 uv, float speed, float height, vec3 col, float amplitudeFactor) {
 
     uv.y += S(1.0, 0.0, abs(uv.x)) * sin((iTime + amplitudeFactor) * speed + uv.x * height) * waveAmplitude;
 
-    float lineThickness = 0.016;
+    float lineThickness = 0.006;
     col = clamp(col * 2.9, 0.0, 1.0);
 
     return vec4(S(0.06 * S(0.2, 0.9, abs(uv.x)), 0.0, abs(uv.y) - lineThickness) * col, 1.0) * S(1.1, 0.3, abs(uv.x));
@@ -31,7 +31,7 @@ float smoothPulse(float center, float width, float t) {
 }
 
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
-    float amplitudeFactor = spectralCentroidZScore / (energy * 100.);
+    float amplitudeFactor = (spectralCentroidZScore +1.) / (energyZScore + 1. * 20.) * 3.;
     vec2 uv = fragCoord / iResolution.xy;
     vec2 p = uv * 2.0 - 1.0;
     p.x *= iResolution.x / iResolution.y;
@@ -40,15 +40,13 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
 
     for (float i = 0.0; i <= 5.0; i += 1.0) {
         float t = i / 5.0;
-        col += Line(p, 1.0 + t + amplitudeFactor * 0.5, 4.0 + t, vec3(0.0, 1.0, 0.0), amplitudeFactor).rgb;
+        col += Line(p, energyZScore + 1., 4.0 + t, vec3(0.0, 1.0, 0.0), amplitudeFactor).rgb;
     }
 
     vec4 lineColor1 = Line(p, 2.0 + amplitudeFactor, 6.0, vec3(1.0, 0.5, 0.0), amplitudeFactor);
 
-    float deviationThreshold = 2.0;
-    if (spectralSlopeStandardDeviation > deviationThreshold) {
-        lineColor1.rgb = mix(vec3(1.0, 0.5, 0.0), vec3(1.0, 0.0, 0.0), smoothstep(deviationThreshold, spectralSlopeStandardDeviation + 0.1, spectralSlopeStandardDeviation));
-    }
+    // make the line color redder with increasing spectralSlopeStandardDeviation
+    lineColor1.rgb += spectralSlopeStandardDeviation * 0.5;
 
     col += lineColor1.rgb;
 

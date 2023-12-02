@@ -7,15 +7,19 @@ precision highp float;
 uniform vec3 iResolution;
 uniform float iTime;
 uniform sampler2D iChannel0;
+uniform float energy;
 
 out vec4 fragColor;
 
 vec4 Line(vec2 uv, float speed, float height, vec3 col, float audioAmplitude) {
     highp float waveAmplitude = 0.1 + audioAmplitude; // Modulate wave amplitude with audio amplitude
 
+    // Adjust wave speed based on energy
+    speed *= (1.0 + energy);
+
     uv.y += S(1.0, 0.0, abs(uv.x)) * sin(iTime * speed + uv.x * height) * waveAmplitude;
 
-    highp float lineThickness = 0.016;
+    highp float lineThickness = 0.01;
     col = clamp(col * 2.9, 0.0, 1.0);
 
     return vec4(S(0.06 * S(0.2, 0.9, abs(uv.x)), 0.0, abs(uv.y) - lineThickness) * col, 1.0) * S(1.1, 0.3, abs(uv.x));

@@ -67,6 +67,7 @@ export class AudioData {
 
 
     realtimeAnalyzerNode.port.onmessage = (event) => {
+      if(!event.data.message.startsWith('BPM')) return;
       let bpm = 0
       // if(!event.data.result?.bpm?.length) return;
       for(const b of event.data.result?.bpm || []) {
@@ -75,14 +76,14 @@ export class AudioData {
       bpm /= event.data.result?.bpm?.length || 0;
       if(event.data.message === 'BPM') return this.bpm = bpm;
       if(event.data.message === 'BPM_STABLE') return this.stableBpm = bpm;
-      console.log(event.data)
+
     };
 
     realtimeAnalyzerNode.port.postMessage({
       message: 'ASYNC_CONFIGURATION',
       parameters: {
         continuousAnalysis: true,
-        stabilizationTime: 20_000, // Default value is 20_000ms after what the library will automatically delete all collected data and restart analysing BPM
+        stabilizationTime: 20_00, // Default value is 20_000ms after what the library will automatically delete all collected data and restart analysing BPM
       }
     })
 
@@ -160,25 +161,6 @@ export class AudioData {
     const frequencyData = new Uint8Array(size);
     this.analyser.getByteFrequencyData(frequencyData);
     return frequencyData
-  }
-
-  getBPM = () => {
-    // console.log(this.peaks)
-    // find the time between peaks
-    const peakTimes = [];
-    for (let i = 1; i < this.peaks.length; i++) {
-      peakTimes.push(this.peaks[i] - this.peaks[i - 1]);
-    }
-    // find the average time between peaks
-    const averagePeakTime = peakTimes.reduce((a, b) => a + b) / peakTimes.length;
-    if (averagePeakTime > 1000) {
-      return 2;
-    }
-
-    // convert to beats per minute
-    const bpm = 60 * 1000 / averagePeakTime;
-    console.log('bpm', bpm)
-    return bpm;
   }
 
   getPeaks = (waveform) => {

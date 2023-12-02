@@ -42,6 +42,7 @@ export class ShaderToy {
         this.state[key] = gl.getUniformLocation(program, key);
       }
     }
+    this.state.bpm = gl.getUniformLocation(program, "bpm");
 
     // Create the audio texture
     this.state.audioTexture = this._createAudioTexture(1024);
@@ -57,6 +58,7 @@ export class ShaderToy {
         gl.uniform1f(state[key], audioData.features[key] || 0);
         tagObject(gl, state[key], key);
       }
+      gl.uniform1f(state.bpm, audioData.bpm || 10);
     }
     const fft = audioData.getFrequencyData();
     gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, fft.length, 1, gl.RED, gl.UNSIGNED_BYTE, fft);
@@ -64,6 +66,7 @@ export class ShaderToy {
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, state.audioTexture);
     gl.uniform1i(state.iChannel0Location, 0);
+    gl.uniform1f(state.iBpmLocation, audioData.bpm || 10)
   };
 
   init = async () => {
@@ -125,6 +128,9 @@ export class ShaderToy {
     const iChannel0Location = gl.getUniformLocation(program, "iChannel0");
     const iChannel1Location = gl.getUniformLocation(program, "iChannel1");
 
+    this.state.iBpmLocation = gl.getUniformLocation(program, "bpm");
+
+
     // Check if iChannel1 is declared and used in the shader
     if (iChannel1Location === null) {
       console.warn("iChannel1Location is null. Check if iChannel1 is declared and used in the shader.");
@@ -136,6 +142,7 @@ export class ShaderToy {
         this.state[key] = gl.getUniformLocation(program, key);
       }
     }
+
 
     // Set iChannel0 and iChannel1 locations if found
     if (iChannel0Location !== null) {

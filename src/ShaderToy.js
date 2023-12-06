@@ -1,7 +1,7 @@
 import { createShader, tagObject } from "./shaderUtils.js";
 import { StatTracker } from "./StatTracker.js";
 
-const STAT_HISTORY_LENGTH = 100;
+const STAT_HISTORY_LENGTH = 200;
 export class ShaderToy {
   constructor(canvas, audioData, shaderUrl, initialImageUrl) {
     this.canvas = canvas;

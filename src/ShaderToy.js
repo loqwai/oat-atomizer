@@ -72,8 +72,6 @@ export class ShaderToy {
   };
 
   initializeAudioStatTrackers = () => {
-    //console.log('initializing audio stat trackers')
-    //console.log(this.audioData.features)
     for (const key in this.audioData.features) {
       if (typeof this.audioData.features[key] === "number") {
         //console.log('initializing audio stat tracker for', key)
@@ -102,6 +100,14 @@ export class ShaderToy {
       this.state.audioUniforms[`${key}Max`] = gl.getUniformLocation(program, `${key}Max`);
       gl.uniform1f(this.state.audioUniforms[`${key}Max`], max);
     }
+    this.state.audioUniforms.beat = gl.getUniformLocation(program, "beat");
+    gl.uniform1f(this.state.audioUniforms.beat, 0);
+  }
+
+  isBeat = () => {
+    const spectralFluxTracker = this.audioStatTrackers.spectralFlux;
+    const { zScore } = spectralFluxTracker.get();
+    return (zScore > 2)
   }
 
   init = async () => {
@@ -154,7 +160,6 @@ export class ShaderToy {
     // Check for linking status
     const status = gl.getProgramParameter(program, gl.LINK_STATUS);
     if (!status) {
-      console.error(`Could not link render program: ${gl.getProgramInfoLog(program)}`);
       throw new Error(`Could not link render program. ${gl.getProgramInfoLog(program)}\n`);
     }
 
@@ -184,6 +189,8 @@ export class ShaderToy {
       this.state.audioUniforms[`${key}Min`] = gl.getUniformLocation(program, `${key}Min`);
       this.state.audioUniforms[`${key}Max`] = gl.getUniformLocation(program, `${key}Max`);
     }
+
+    this.state.audioUniforms.beat = gl.getUniformLocation(program, "beat");
 
 
     // Set iChannel0 and iChannel1 locations if found
@@ -262,8 +269,8 @@ export class ShaderToy {
       tagObject(gl, this.state.audioUniforms[keyName], keyName);
 
     }
-    const energyStatTracker = this.audioStatTrackers.energy;
-    // console.log(energyStatTracker.get());
+    const beat = this.isBeat();
+    gl.uniform1f(this.state.audioUniforms.beat, beat);
   }
   render = () => {
     if (!this.running) return;
@@ -310,6 +317,8 @@ export class ShaderToy {
     this.imageTexture = texture;
     requestAnimationFrame(this.render);
   };
+
+
 
   start = () => {
     this.running = true;

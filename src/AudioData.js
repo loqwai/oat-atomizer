@@ -96,7 +96,7 @@ export class AudioData {
   setupMeyda = (audioInput) => {
     let featureList = Meyda.listAvailableFeatureExtractors();
     // remove spectralFlux from the featureList bc it crashes
-    featureList = featureList.filter(f => f !== 'spectralFlux');
+    // featureList = featureList.filter(f => f !== 'spectralFlux');
     this.features = {}
     for(const feature of featureList) {
       this.features[feature] = 0;

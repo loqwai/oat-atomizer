@@ -269,8 +269,7 @@ export class ShaderToy {
       tagObject(gl, this.state.audioUniforms[keyName], keyName);
 
     }
-    const beat = this.isBeat();
-    gl.uniform1f(this.state.audioUniforms.beat, beat);
+    gl.uniform1f(this.state.audioUniforms.beat, this.isBeat());
   }
   render = () => {
     if (!this.running) return;

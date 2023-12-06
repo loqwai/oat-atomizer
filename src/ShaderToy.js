@@ -5,6 +5,8 @@ const STAT_HISTORY_LENGTH = 100;
 export class ShaderToy {
   constructor(canvas, audioData, shaderUrl, initialImageUrl) {
     this.canvas = canvas;
+    this.width = canvas.width;
+    this.height = canvas.height;
     this.audioData = audioData;
     this.shaderUrl = shaderUrl;
     this.initialImageUrl = initialImageUrl || "/public/placeholder-image.png"
@@ -54,7 +56,6 @@ export class ShaderToy {
     this.state.audioTexture = this._createAudioTexture(1024);
   };
 
-  render
   writeAudioDataToTexture = () => {
     const { gl, audioData, state } = this;
     gl.bindTexture(gl.TEXTURE_2D, state.audioTexture);
@@ -118,7 +119,8 @@ export class ShaderToy {
     await this.audioData.start();
     this.initializeAudioStatTrackers();
 
-    const { gl } = this;
+    const { gl, width, height} = this;
+    gl.viewport(0, 0, width, height);
     const program = await this.createRenderProgram();
     this.imageTexture = await this.createImageTexture(this.initialImageUrl);
     const positionBuffer = this.createPositionBuffer();
@@ -278,11 +280,12 @@ export class ShaderToy {
   render = () => {
     if (!this.running) return;
     const { gl, state } = this;
-    const { pixels, canvas } = this;
-    const { width, height } = canvas;
+    const { pixels } = this;
+    const { width, height } = this;
+    gl.viewport(0, 0, width, height);
 
     gl.bindVertexArray(state.vao);
-    gl.uniform3f(state.iResolution, this.canvas.width, this.canvas.height, 1.0);
+    gl.uniform3f(state.iResolution, width, height, 1.0);
     gl.uniform1f(state.iTime, (performance.now() - this.startTime) / 1000);
 
     this.writeAudioDataToTexture();
@@ -306,7 +309,7 @@ export class ShaderToy {
 
     // Draw
     gl.drawArrays(gl.TRIANGLES, 0, 6);
-    gl.readPixels(0, 0, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
 
     const texture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, texture);

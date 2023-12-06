@@ -1,9 +1,10 @@
 import { createShader, tagObject } from "./shaderUtils.js";
 import { StatTracker } from "./StatTracker.js";
 
-const STAT_HISTORY_LENGTH = 200;
+const STAT_HISTORY_LENGTH = 15000;
 export class ShaderToy {
   constructor(canvas, audioData, shaderUrl, initialImageUrl) {
+    this.startTime = performance.now();
     this.canvas = canvas;
     this.width = canvas.width;
     this.height = canvas.height;
@@ -108,11 +109,9 @@ export class ShaderToy {
   isBeat = () => {
     const spectralFluxTracker = this.audioStatTrackers.spectralFlux;
     const fluxZScore = spectralFluxTracker.get().zScore;
-    if(fluxZScore < 1.5) return false;
+    if( spectralFluxTracker.values.length < STAT_HISTORY_LENGTH && spectralFluxTracker.values.length % 100 ==0) console.log(spectralFluxTracker.values.length, performance.now() - this.startTime);
+    if(fluxZScore < 1.8) return false;
     return true;
-    const energyZscore = this.audioStatTrackers.energy.get().zScore;
-    if(energyZscore < 1.5) return false;
-    return true
   }
 
   init = async () => {

@@ -1,4 +1,6 @@
 import { calculateSpectralSpread } from './calculateSpectralSpread.js';
+import { calculateSpectralCentroid } from './calculateSpectralCentroid.js';
+import {applyHanningWindow} from './applyHanningWindow.js';
 export class AudioProcessor {
   // An array of strings of names of processors
   processors = [
@@ -10,6 +12,7 @@ export class AudioProcessor {
     this.audioContext = audioContext;
     this.sourceNode = sourceNode;
     this.fftSize = fftSize;
+    this.rawFeatures = {};
     this.features = {};
 
     this.fftAnalyzer = this.audioContext.createAnalyser();
@@ -41,13 +44,26 @@ export class AudioProcessor {
   pullFFTData = () => {
     // this.fftAnalyzer.getByteTimeDomainData(this.fftData);
     this.fftAnalyzer.getByteFrequencyData(this.fftData);
+    this.windowedFftData = applyHanningWindow(this.fftData);
     // this.fftAnalyzer.getFloatFrequencyData(this.fftFloatData);
     requestAnimationFrame(this.pullFFTData);
   }
   // Inside AudioProcessor class
   calculateSpectralFeatures = () => {
-    const spectralSpread = calculateSpectralSpread(this.fftData, this.audioContext.sampleRate, this.fftSize);
-    console.log(spectralSpread);
+    const { audioContext, fftData, windowedFftData, fftSize } = this;
+    if(!fftData || !windowedFftData) {
+      return;
+    }
+    const spectralSpread = calculateSpectralSpread(windowedFftData, audioContext.sampleRate, fftSize);
+    const spectralCentroid = calculateSpectralCentroid(windowedFftData, audioContext.sampleRate, fftSize);
+    this.rawFeatures = {
+      spectralSpread,
+      spectralCentroid,
+    };
+    this.features = {
+      spectralSpread,
+      spectralCentroid: spectralCentroid/4,
+    }
     requestAnimationFrame(this.calculateSpectralFeatures);
   }
 

@@ -139,8 +139,6 @@ export class ShaderToy {
     // Initialize audio feature uniforms
     this.initAudioUniforms();
     this.initializeAudioStatTrackerUniforms();
-    //console.log('made it out of the init function')
-    requestAnimationFrame(this.render);
   };
 
   createPositionBuffer = () => {
@@ -340,7 +338,7 @@ export class ShaderToy {
 
   start = () => {
     this.running = true;
-    requestAnimationFrame(this.render);
+    this.render();
   };
 
   stop = () => {

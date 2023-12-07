@@ -1,5 +1,3 @@
-import { calculateSpectralSpread } from './calculateSpectralSpread.js';
-import { calculateSpectralCentroid } from './calculateSpectralCentroid.js';
 import {applyHanningWindow} from './applyHanningWindow.js';
 export class AudioProcessor {
   // An array of strings of names of processors
@@ -52,7 +50,6 @@ export class AudioProcessor {
     }
 
     this.pullFFTData();
-    this.calculateSpectralFeatures();
   }
 
   setupFFT = () => {
@@ -69,16 +66,8 @@ export class AudioProcessor {
     }
 
     // this.fftAnalyzer.getFloatFrequencyData(this.fftFloatData);
-    requestAnimationFrame(this.pullFFTData);
-  }
-  // Inside AudioProcessor class
-  calculateSpectralFeatures = () => {
-    const { audioContext, fftData, windowedFftData, fftSize } = this;
-    if(!fftData || !windowedFftData) {
-      return;
-    }
     this.updateLegacyFeatures();
-    requestAnimationFrame(this.calculateSpectralFeatures);
+    requestAnimationFrame(this.pullFFTData);
   }
   updateLegacyFeatures = () => {
     this.features['spectralSpread'] = this.rawFeatures['SpectralSpread'] || 0;

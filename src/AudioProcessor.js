@@ -1,26 +1,44 @@
-const processors = [
-  'Energy',
-  'SpectralFlux',
-];
-
 export class AudioProcessor {
-  constructor(audioContext, sourceNode) {
+  // An array of strings of names of processors
+  processors = [
+    'Energy',
+    'SpectralFlux',
+  ];
+
+  constructor(audioContext, sourceNode, fftSize = 2048) {
     this.audioContext = audioContext;
     this.sourceNode = sourceNode;
+    this.fftSize = fftSize;
     this.features = {};
+
+    this.fftAnalyzer = this.audioContext.createAnalyser();
+    this.fftAnalyzer.fftSize = this.fftSize;  // Example size, can be adjusted
+    this.fftData = new Uint8Array(this.fftAnalyzer.frequencyBinCount);
+    this.sourceNode.connect(this.fftAnalyzer);
+    // Don't connect the fftAnalyzer to the audioContext's destination
   }
 
-  async start() {
-    const { audioContext, sourceNode } = this;
-    // chrome's devtools caches the audio worklet, so we need to add a timestamp to the url
+  start = async () => {
     const timestamp = Date.now();
-    for (const processor of processors) {
-      await audioContext.audioWorklet.addModule(`/src/analyzers/${processor}.js?timestamp=${timestamp}`);
+    for (const processor of this.processors) {
+      await this.audioContext.audioWorklet.addModule(`/src/analyzers/${processor}.js?timestamp=${timestamp}`);
       console.log(`Audio worklet ${processor} added`);
-      const audioProcessor = new AudioWorkletNode(audioContext, `Audio-${processor}`);
-      sourceNode.connect(audioProcessor).connect(audioContext.destination);
+      const audioProcessor = new AudioWorkletNode(this.audioContext, `Audio-${processor}`);
+      this.sourceNode.connect(audioProcessor);
+      // Don't connect the audioProcessor to the audioContext's destination
       audioProcessor.port.onmessage = event => this.features[processor] = event.data;
     }
-    setInterval(() => console.log(this.features), 10);
+    this.pullFFTData();
+  }
+
+  setupFFT = () => {
+    console.log("Setting up fft analyzer");
+    this.fftData = new Uint8Array(this.fftAnalyzer.frequencyBinCount);
+  }
+
+  pullFFTData = () => {
+    this.fftAnalyzer.getByteFrequencyData(this.fftData);
+    console.log(this.fftData);
+    requestAnimationFrame(this.pullFFTData);
   }
 }

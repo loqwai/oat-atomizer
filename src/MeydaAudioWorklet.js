@@ -2,13 +2,23 @@
 class MeydaAudioWorklet extends AudioWorkletProcessor {
   constructor() {
       super();
-      // importScripts('https://cdn.jsdelivr.net/npm/meyda/dist/meyda.min.js');
     this.port.onmessage = (event) => {
       this.port.postMessage("Echo from worklet: " + event.data);
     }
   }
   process(inputs, outputs) {
-    this.port.postMessage('processing audio');
+    let energy = 0;
+    // for all inputs
+    for (let input of inputs) {
+      // for all channels
+      for (let channel of input) {
+        // for all samples
+        for (let sample of channel) {
+          energy += Math.pow(Math.abs(sample), 2);
+        }
+      }
+    }
+    this.port.postMessage(energy);
       return true;
   }
 }

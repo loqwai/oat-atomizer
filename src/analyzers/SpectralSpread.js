@@ -12,8 +12,7 @@ function mu(i, amplitudeSpect) {
   return numerator / denominator;
 }
 
-export function calculateSpectralSpread(fftData, sampleRate, fftSize) {
-  // fftData= fftData.map(convertToLinearScale);
+function calculateSpectralSpread(fftData, sampleRate, fftSize) {
   const meanFrequency = mu(1, fftData, sampleRate, fftSize);
   const secondMoment = mu(2, fftData, sampleRate, fftSize);
 

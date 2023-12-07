@@ -6,6 +6,7 @@ export class ShaderToy {
   constructor(canvas, audioData, shaderUrl, initialImageUrl) {
     window.shaderToy = this;
     this.startTime = performance.now();
+    this.featuresToLog = [];
     this.canvas = canvas;
     this.width = canvas.width;
     this.height = canvas.height;
@@ -259,6 +260,13 @@ export class ShaderToy {
       statTracker.set(audioData.bpm || 10);
       gl.uniform1f(state.audioUniforms.bpm, audioData.bpm || 10);
     }
+    if(this.featuresToLog.length === 0) return;
+    // collect everything in 'this.featuresToLog' in to an object and log it
+    const features = {};
+    for(const feature of this.featuresToLog) {
+      features[feature] = this.audioData.features[feature];
+    }
+    console.log(features);
   }
 
   renderAudioStatTrackers = () => {

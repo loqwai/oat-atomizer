@@ -8,6 +8,7 @@ export class AudioProcessor {
   ];
   thingsThatWork = [
     'SpectralFlux',
+    'SpectralSpread',
   ];
 
   constructor(audioContext, sourceNode, fftSize = 2048) {
@@ -42,7 +43,7 @@ export class AudioProcessor {
     }
     for (const workerName of this.thingsThatWork) {
       const worker = new Worker(`/src/analyzers/${workerName}.js?timestamp=${timestamp}`);
-      console.log(`Worker ${worker} added`);
+      console.log(`Worker ${workerName} added`);
       worker.onmessage = (event) => {
         // console.log(`Worker ${workerName} message received`, event);;
         this.rawFeatures[workerName] = event.data;
@@ -76,10 +77,6 @@ export class AudioProcessor {
     if(!fftData || !windowedFftData) {
       return;
     }
-    const SpectralSpread = calculateSpectralSpread(windowedFftData, audioContext.sampleRate, fftSize);
-    const SpectralCentroid = calculateSpectralCentroid(windowedFftData, audioContext.sampleRate, fftSize);
-    this.rawFeatures['SpectralSpread'] = SpectralSpread;
-    this.rawFeatures['SpectralCentroid'] = SpectralCentroid;
     this.updateLegacyFeatures();
     requestAnimationFrame(this.calculateSpectralFeatures);
   }

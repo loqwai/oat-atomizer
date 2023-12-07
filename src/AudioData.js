@@ -9,13 +9,6 @@ const createFilter = (context, type) => {
   return filter;
 }
 
-const getFrequencyData = (analyser) => {
-  const size = analyser.fftSize / 2;
-  const frequencyData = new Uint8Array(size);
-  analyser.getByteFrequencyData(frequencyData);
-  return frequencyData
-}
-
 export class AudioData {
   constructor(audio, fftSize = 1024) {
     this.fftSize = fftSize;
@@ -32,9 +25,9 @@ export class AudioData {
     }
 
     this.analysers = {
-      lowpass: new AnalyserNode(this.context, { fftSize: 2048 }),
-      highpass: new AnalyserNode(this.context, { fftSize: 2048 }),
-      mid: new AnalyserNode(this.context, { fftSize: 2048 }),
+      lowpass: new AnalyserNode(this.context, { fftSize }),
+      highpass: new AnalyserNode(this.context, { fftSize }),
+      mid: new AnalyserNode(this.context, { fftSize }),
     }
 
     this.loudness = {

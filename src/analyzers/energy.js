@@ -1,5 +1,5 @@
 // simple-processor.js
-class MeydaAudioWorklet extends AudioWorkletProcessor {
+class EnergyAnalyzer extends AudioWorkletProcessor {
   constructor() {
       super();
     this.port.onmessage = (event) => {
@@ -23,4 +23,4 @@ class MeydaAudioWorklet extends AudioWorkletProcessor {
   }
 }
 
-registerProcessor('meyda-audio', MeydaAudioWorklet);
+registerProcessor('audio-energy', EnergyAnalyzer);

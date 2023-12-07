@@ -6,9 +6,9 @@ const main = async () => {
   console.log("Audio context resumed");
   // chrome's devtools caches the audio worklet, so we need to add a timestamp to the url
   const timestamp = Date.now();
-  await audioContext.audioWorklet.addModule(`/src/MeydaAudioWorklet.js?timestamp=${timestamp}`);
+  await audioContext.audioWorklet.addModule(`/src/analyzers/energy.js?timestamp=${timestamp}`);
   console.log("Audio worklet added");
-  const meydaAudio = new AudioWorkletNode(audioContext, 'meyda-audio');
+  const meydaAudio = new AudioWorkletNode(audioContext, 'audio-energy');
   meydaAudio.port.onmessage = (event) => {
     console.log(event.data);
   };

@@ -54,9 +54,6 @@ export class AudioData {
     audioInput.connect(this.filters.mid).connect(this.analysers.mid);
 
     this.setupMeyda(audioInput);
-    requestAnimationFrame(this.trackAverageLoudness);
-    requestAnimationFrame(this.trackPeaks);
-    requestAnimationFrame(this.trackFilteredLoudnesses);
   }
 
   setupMeyda = (audioInput) => {
@@ -85,39 +82,11 @@ export class AudioData {
     analyzer.start();
   }
 
-  trackFilteredLoudnesses = () => {
-    this.loudness.low = getFrequencyData(this.analysers.lowpass).reduce((a, b) => a + b) / this.analysers.lowpass.fftSize;
-    this.loudness.high = getFrequencyData(this.analysers.highpass).reduce((a, b) => a + b) / this.analysers.highpass.fftSize;
-    this.loudness.mid = getFrequencyData(this.analysers.mid).reduce((a, b) => a + b) / this.analysers.mid.fftSize;
-
-    requestAnimationFrame(this.trackFilteredLoudnesses);
-  }
-
-  trackAverageLoudness = () => {
-    const frequencyData = this.getFrequencyData();
-    this.loudnesses.shift();
-    this.loudnesses.push(frequencyData.reduce((a, b) => a + b) / frequencyData.length);
-    requestAnimationFrame(this.trackAverageLoudness);
-  }
-
   getLoudness = () => {
     const frequencyData = this.getFrequencyData();
     return frequencyData.reduce((a, b) => a + b) / frequencyData.length;
   }
 
-  trackPeaks = () => {
-    const loudness = this.getLoudness();
-    // find p99 loudness value without sorting the whole array
-    // const loudnessP95 = this.loudnesses.slice().sort((a, b) => a - b)[Math.floor(this.loudnesses.length * 0.50)];
-    const loudnessP95 = 0;
-
-    if (loudness > loudnessP95) {
-      this.peaks.shift();
-      this.peaks.push(performance.now());
-    }
-
-    requestAnimationFrame(this.trackPeaks);
-  }
 
   /**
    * @returns {Uint8Array}

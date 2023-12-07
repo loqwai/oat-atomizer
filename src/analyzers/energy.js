@@ -3,7 +3,7 @@ class EnergyAnalyzer extends AudioWorkletProcessor {
   constructor() {
       super();
     this.port.onmessage = (event) => {
-      this.port.postMessage("Echo from worklet: " + event.data);
+      this.port.postMessage(this.energy);
     }
   }
   process(inputs, outputs) {
@@ -18,8 +18,9 @@ class EnergyAnalyzer extends AudioWorkletProcessor {
         }
       }
     }
-    this.port.postMessage(energy);
-      return true;
+    this.energy = energy;
+    this.port.postMessage(this.energy);
+    return true;
   }
 }
 

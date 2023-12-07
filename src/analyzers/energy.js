@@ -2,9 +2,6 @@
 class Energy extends AudioWorkletProcessor {
   constructor() {
       super();
-    this.port.onmessage = (event) => {
-      this.port.postMessage(this.energy);
-    }
   }
   process(inputs, outputs) {
     let energy = 0;
@@ -24,4 +21,4 @@ class Energy extends AudioWorkletProcessor {
   }
 }
 
-registerProcessor('audio-energy', Energy);
+registerProcessor('Audio-Energy', Energy);

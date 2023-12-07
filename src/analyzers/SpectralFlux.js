@@ -43,4 +43,4 @@ class SpectralFlux extends AudioWorkletProcessor {
   }
 }
 
-registerProcessor('audio-spectral-flux', SpectralFlux);
+registerProcessor('Audio-SpectralFlux', SpectralFlux);

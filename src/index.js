@@ -1,4 +1,4 @@
-import {AudioProcessor} from './audio-processor.js';
+import {AudioProcessor} from './AudioProcessor.js';
 const main = async () => {
   console.log("Main function started");
   const audioContext = new AudioContext();

@@ -1,5 +1,5 @@
 // simple-processor.js
-class EnergyAnalyzer extends AudioWorkletProcessor {
+class Energy extends AudioWorkletProcessor {
   constructor() {
       super();
     this.port.onmessage = (event) => {
@@ -24,4 +24,4 @@ class EnergyAnalyzer extends AudioWorkletProcessor {
   }
 }
 
-registerProcessor('audio-energy', EnergyAnalyzer);
+registerProcessor('audio-energy', Energy);

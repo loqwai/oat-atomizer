@@ -1,13 +1,16 @@
 // simple-processor.js
-class SimpleProcessor extends AudioWorkletProcessor {
+class MeydaAudioWorklet extends AudioWorkletProcessor {
+  constructor() {
+      super();
+      // importScripts('https://cdn.jsdelivr.net/npm/meyda/dist/meyda.min.js');
+    this.port.onmessage = (event) => {
+      this.port.postMessage("Echo from worklet: " + event.data);
+    }
+  }
   process(inputs, outputs) {
-      const input = inputs[0];
-      const output = outputs[0];
-      for (let channel = 0; channel < input.length; channel++) {
-          output[channel].set(input[channel]);
-      }
+    this.port.postMessage('processing audio');
       return true;
   }
 }
 
-registerProcessor('simple-processor', SimpleProcessor);
+registerProcessor('meyda-audio', MeydaAudioWorklet);

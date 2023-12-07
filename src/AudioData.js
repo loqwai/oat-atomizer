@@ -1,4 +1,3 @@
-import { createRealTimeBpmProcessor, getBiquadFilters } from 'realtime-bpm-analyzer'
 import * as _unused from 'meyda'
 
 const {Meyda} = window;
@@ -18,7 +17,7 @@ const getFrequencyData = (analyser) => {
 }
 
 export class AudioData {
-  constructor(audio, fftSize = 2048) {
+  constructor(audio, fftSize = 1024) {
     this.fftSize = fftSize;
     this.context = new AudioContext();
     this.analyser = new AnalyserNode(this.context);
@@ -53,39 +52,6 @@ export class AudioData {
     audioInput.connect(this.filters.lowpass).connect(this.analysers.lowpass);;
     audioInput.connect(this.filters.highpass).connect(this.analysers.highpass);
     audioInput.connect(this.filters.mid).connect(this.analysers.mid);
-
-    const realtimeAnalyzerNode = await createRealTimeBpmProcessor(this.context,);
-    // const {lowpass, highpass} = getBiquadFilters(this.context);
-    const gain = this.context.createGain();
-    gain.gain.value = 3;
-    const filter = this.context.createBiquadFilter();
-    filter.type = 'lowpass';
-    // console.log({realtimeAnalyzerNode, lowpass, highpass})
-    audioInput.connect(gain).connect(filter).connect(realtimeAnalyzerNode)
-    // audioInput.connect(this.context.destination);
-
-
-
-    realtimeAnalyzerNode.port.onmessage = (event) => {
-      if(!event.data.message.startsWith('BPM')) return;
-      let bpm = 0
-      // if(!event.data.result?.bpm?.length) return;
-      for(const b of event.data.result?.bpm || []) {
-        bpm += b.tempo;
-      }
-      bpm /= event.data.result?.bpm?.length || 0;
-      if(event.data.message === 'BPM') return this.bpm = bpm;
-      if(event.data.message === 'BPM_STABLE') return this.stableBpm = bpm;
-
-    };
-
-    realtimeAnalyzerNode.port.postMessage({
-      message: 'ASYNC_CONFIGURATION',
-      parameters: {
-        continuousAnalysis: true,
-        stabilizationTime: 20_00, // Default value is 20_000ms after what the library will automatically delete all collected data and restart analysing BPM
-      }
-    })
 
     this.setupMeyda(audioInput);
     requestAnimationFrame(this.trackAverageLoudness);

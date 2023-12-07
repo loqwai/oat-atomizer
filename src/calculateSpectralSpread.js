@@ -11,7 +11,13 @@ function mu(i, amplitudeSpect) {
   return numerator / denominator;
 }
 
+function convertToLinearScale(value) {
+  return Math.pow(10, value / 20);  // Convert from dB to linear scale
+}
+
+
 export function calculateSpectralSpread(fftData, sampleRate, fftSize) {
+  fftData= fftData.map(convertToLinearScale);
   const meanFrequency = mu(1, fftData, sampleRate, fftSize);
   const secondMoment = mu(2, fftData, sampleRate, fftSize);
 

@@ -15,6 +15,7 @@ export class AudioProcessor {
     this.fftAnalyzer = this.audioContext.createAnalyser();
     this.fftAnalyzer.fftSize = this.fftSize;  // Example size, can be adjusted
     this.fftData = new Uint8Array(this.fftAnalyzer.frequencyBinCount);
+    this.fftFloatData = new Float32Array(this.fftAnalyzer.frequencyBinCount);
     this.sourceNode.connect(this.fftAnalyzer);
     // Don't connect the fftAnalyzer to the audioContext's destination
   }
@@ -38,12 +39,14 @@ export class AudioProcessor {
   }
 
   pullFFTData = () => {
+    // this.fftAnalyzer.getByteTimeDomainData(this.fftData);
     this.fftAnalyzer.getByteFrequencyData(this.fftData);
+    this.fftAnalyzer.getFloatFrequencyData(this.fftFloatData);
     requestAnimationFrame(this.pullFFTData);
   }
   // Inside AudioProcessor class
   calculateSpectralFeatures = () => {
-    const spectralSpread = calculateSpectralSpread(this.fftData, this.audioContext.sampleRate, this.fftSize);
+    const spectralSpread = calculateSpectralSpread(this.fftData, this.audioContext.sampleRate, this.fftSize)/10;
     console.log(spectralSpread);
     requestAnimationFrame(this.calculateSpectralFeatures);
   }

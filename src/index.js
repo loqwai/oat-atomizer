@@ -15,6 +15,8 @@ const main = async () => {
   document.onkeydown = null;
 
  const canvas = document.querySelector('#visualizer');
+ const body = document.querySelector('body');
+ body.classList.add('ready');
  const params = new URLSearchParams(window.location.search);
  const shader = params.get("shader");
  const initialImageUrl = params.get("image");

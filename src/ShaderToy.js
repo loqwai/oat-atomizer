@@ -4,6 +4,7 @@ import { StatTracker } from "./StatTracker.js";
 const STAT_HISTORY_LENGTH = 500;
 export class ShaderToy {
   constructor(canvas, audioData, shaderUrl, initialImageUrl) {
+    window.shaderToy = this;
     this.startTime = performance.now();
     this.canvas = canvas;
     this.width = canvas.width;

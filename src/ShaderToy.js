@@ -4,15 +4,14 @@ import { StatTracker } from "./StatTracker.js";
 const STAT_HISTORY_LENGTH = 500;
 export class ShaderToy {
   constructor(canvas, audioData, shaderUrl, initialImageUrl) {
-    window.shaderToy = this;
+    console.log("ShaderToy constructor called");
     this.startTime = performance.now();
-    this.featuresToLog = [];
     this.canvas = canvas;
     this.width = canvas.width;
     this.height = canvas.height;
     this.audioData = audioData;
     this.shaderUrl = shaderUrl;
-    this.initialImageUrl = initialImageUrl || "/public/placeholder-image.png"
+    this.initialImageUrl = initialImageUrl || "/src/images/placeholder-image.png"
     this.gl = canvas.getContext("webgl2");
     this.pixels = new Uint8Array(canvas.width * canvas.height * 4); // 4 channels (RGBA) per pixel
     this.startTime = performance.now();
@@ -20,7 +19,7 @@ export class ShaderToy {
       audioUniforms: {},
     };
     this.audioStatTrackers = {};
-
+    console.log("ShaderToy constructor finished");
     // Enable the GMAN_debug_helper extension
     const ext = this.gl.getExtension('GMAN_debug_helper');
     if (ext) {
@@ -260,13 +259,6 @@ export class ShaderToy {
       statTracker.set(audioData.bpm || 10);
       gl.uniform1f(state.audioUniforms.bpm, audioData.bpm || 10);
     }
-    if(this.featuresToLog.length === 0) return;
-    // collect everything in 'this.featuresToLog' in to an object and log it
-    const features = {};
-    for(const feature of this.featuresToLog) {
-      features[feature] = this.audioData.features[feature];
-    }
-    console.log(features);
   }
 
   renderAudioStatTrackers = () => {

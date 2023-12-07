@@ -146,9 +146,21 @@ export class ShaderToy {
     const { gl } = this;
     const buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, -1, 1, 1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+
+    // Define the vertices with 1/4 scale and stretching to fill the canvas
+    const vertices = [
+        -2.0, -2.0,
+        -2.0, 2.0,
+        2.0, -2.0,
+        2.0, -2.0,
+        -2.0, 2.0,
+        2.0, 2.0,
+    ];
+
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
     return buffer;
-  };
+};
+
 
   createRenderProgram = async () => {
     const { gl, shaderUrl } = this;

@@ -1,3 +1,4 @@
+import { calculateSpectralSpread } from './calculateSpectralSpread.js';
 export class AudioProcessor {
   // An array of strings of names of processors
   processors = [
@@ -29,16 +30,22 @@ export class AudioProcessor {
       audioProcessor.port.onmessage = event => this.features[processor] = event.data;
     }
     this.pullFFTData();
+    this.calculateSpectralFeatures();
   }
 
   setupFFT = () => {
-    console.log("Setting up fft analyzer");
     this.fftData = new Uint8Array(this.fftAnalyzer.frequencyBinCount);
   }
 
   pullFFTData = () => {
     this.fftAnalyzer.getByteFrequencyData(this.fftData);
-    console.log(this.fftData);
     requestAnimationFrame(this.pullFFTData);
   }
+  // Inside AudioProcessor class
+  calculateSpectralFeatures = () => {
+    const spectralSpread = calculateSpectralSpread(this.fftData, this.audioContext.sampleRate, this.fftSize);
+    console.log(spectralSpread);
+    requestAnimationFrame(this.calculateSpectralFeatures);
+  }
+
 }

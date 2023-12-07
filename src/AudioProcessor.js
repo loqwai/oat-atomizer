@@ -3,8 +3,10 @@ import { calculateSpectralCentroid } from './calculateSpectralCentroid.js';
 import {applyHanningWindow} from './applyHanningWindow.js';
 export class AudioProcessor {
   // An array of strings of names of processors
-  processors = [
+  audioProcessors = [
     'Energy',
+  ];
+  thingsThatWork = [
     'SpectralFlux',
   ];
 
@@ -14,6 +16,7 @@ export class AudioProcessor {
     this.fftSize = fftSize;
     this.rawFeatures = {};
     this.features = {};
+    this.workers = {};
 
     this.fftAnalyzer = this.audioContext.createAnalyser();
     this.fftAnalyzer.fftSize = this.fftSize;  // Example size, can be adjusted
@@ -23,16 +26,30 @@ export class AudioProcessor {
     // Don't connect the fftAnalyzer to the audioContext's destination
   }
 
+  getFrequencyData = () => {
+    return this.fftData;
+  }
+
   start = async () => {
     const timestamp = Date.now();
-    for (const processor of this.processors) {
+    for (const processor of this.audioProcessors) {
       await this.audioContext.audioWorklet.addModule(`/src/analyzers/${processor}.js?timestamp=${timestamp}`);
       console.log(`Audio worklet ${processor} added`);
       const audioProcessor = new AudioWorkletNode(this.audioContext, `Audio-${processor}`);
       this.sourceNode.connect(audioProcessor);
       // Don't connect the audioProcessor to the audioContext's destination
-      audioProcessor.port.onmessage = event => this.features[processor] = event.data;
+      audioProcessor.port.onmessage = event => this.rawFeatures[processor] = event.data;
     }
+    for (const workerName of this.thingsThatWork) {
+      const worker = new Worker(`/src/analyzers/${workerName}.js?timestamp=${timestamp}`);
+      console.log(`Worker ${worker} added`);
+      worker.onmessage = (event) => {
+        // console.log(`Worker ${workerName} message received`, event);;
+        this.rawFeatures[workerName] = event.data;
+      }
+      this.workers[workerName] = worker;
+    }
+
     this.pullFFTData();
     this.calculateSpectralFeatures();
   }
@@ -45,6 +62,11 @@ export class AudioProcessor {
     // this.fftAnalyzer.getByteTimeDomainData(this.fftData);
     this.fftAnalyzer.getByteFrequencyData(this.fftData);
     this.windowedFftData = applyHanningWindow(this.fftData);
+
+    for(const worker in this.workers) {
+      this.workers[worker].postMessage(this.windowedFftData);
+    }
+
     // this.fftAnalyzer.getFloatFrequencyData(this.fftFloatData);
     requestAnimationFrame(this.pullFFTData);
   }
@@ -54,17 +76,18 @@ export class AudioProcessor {
     if(!fftData || !windowedFftData) {
       return;
     }
-    const spectralSpread = calculateSpectralSpread(windowedFftData, audioContext.sampleRate, fftSize);
-    const spectralCentroid = calculateSpectralCentroid(windowedFftData, audioContext.sampleRate, fftSize);
-    this.rawFeatures = {
-      spectralSpread,
-      spectralCentroid,
-    };
-    this.features = {
-      spectralSpread,
-      spectralCentroid: spectralCentroid/4,
-    }
+    const SpectralSpread = calculateSpectralSpread(windowedFftData, audioContext.sampleRate, fftSize);
+    const SpectralCentroid = calculateSpectralCentroid(windowedFftData, audioContext.sampleRate, fftSize);
+    this.rawFeatures['SpectralSpread'] = SpectralSpread;
+    this.rawFeatures['SpectralCentroid'] = SpectralCentroid;
+    this.updateLegacyFeatures();
     requestAnimationFrame(this.calculateSpectralFeatures);
+  }
+  updateLegacyFeatures = () => {
+    this.features['spectralSpread'] = this.rawFeatures['SpectralSpread'] || 0;
+    this.features['spectralCentroid'] = (this.rawFeatures['SpectralCentroid'] || 0)/4;
+    this.features['spectralFlux'] = this.rawFeatures['SpectralFlux'] || 0;
+    this.features['energy'] = this.rawFeatures['Energy'] || 0;
   }
 
 }

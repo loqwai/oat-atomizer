@@ -1,46 +1,24 @@
-class SpectralFlux extends AudioWorkletProcessor {
-  constructor() {
-    super();
-    this.previousSignal = null;
+let previousSignal = null;
+
+function calculateSpectralFlux(currentSignal) {
+  if (!previousSignal) {
+    previousSignal = currentSignal;
+    return 0; // Or handle the first frame differently
   }
 
-  calculateSpectralFlux(signal, previousSignal, bufferSize) {
-    if (!previousSignal) {
-      return 0; // No previous signal to compare against
-    }
-
-    let sf = 0;
-    for (let i = 0; i < signal.length; i++) {
-      let x = Math.abs(signal[i]) - Math.abs(previousSignal[i]);
-      sf += (x + Math.abs(x)) / 2;
-    }
-
-    return sf;
+  let sf = 0;
+  for (let i = 0; i < currentSignal.length; i++) {
+    const diff = Math.abs(currentSignal[i]) - Math.abs(previousSignal[i]);
+    sf += (diff + Math.abs(diff)) / 2;
   }
 
-  process(inputs, outputs) {
-    const input = inputs[0];
-    const output = outputs[0];
+  // Update the previous signal for the next call
+  previousSignal = currentSignal;
 
-    if (input && input.length > 0) {
-      const signal = input[0];
-      const bufferSize = signal.length;
-
-      // Calculate spectral flux
-      const spectralFlux = this.calculateSpectralFlux(signal, this.previousSignal, bufferSize);
-
-      // Store current signal for next process call
-      this.previousSignal = new Float32Array(signal);
-
-      // Example of sending spectral flux back to main thread
-      this.port.postMessage(spectralFlux);
-
-      // Pass-through audio (or implement other processing)
-      output.forEach(channel => channel.set(signal));
-    }
-
-    return true;
-  }
+  return sf;
 }
 
-registerProcessor('Audio-SpectralFlux', SpectralFlux);
+onmessage = function(event) {
+  const spectralFlux = calculateSpectralFlux(event.data);
+  postMessage(spectralFlux);
+};

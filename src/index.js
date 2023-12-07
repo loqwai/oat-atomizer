@@ -1,32 +1,18 @@
-import { AudioData } from './AudioData.js';
-import { ShaderToy } from './ShaderToy.js';
-
 const main = async () => {
+  console.log("Main function started");
+  const audioContext = new AudioContext();
+  console.log("Audio context created");
+  await audioContext.resume();
+  console.log("Audio context resumed");
+  await audioContext.audioWorklet.addModule('/src/MeydaAudioWorklet.js');
+  console.log("Audio worklet added");
+  const simpleNode = new AudioWorkletNode(audioContext, 'simple-processor');
+  document.querySelector('h1').remove();
+  // Remove event listeners if no longer needed
   document.onclick = null;
   document.ontouchstart = null;
   document.onkeydown = null;
-
-
-  document.querySelector('h1').remove();
-  const audioData = new AudioData();
-
-  const canvas = document.querySelector('#visualizer');
-  const params = new URLSearchParams(window.location.search);
-  const shader = params.get("shader");
-  const initialImageUrl = params.get("image");
-  if(!shader){
-    throw new Error("No shader specified");
-  }
-
-  const viz = new ShaderToy(canvas, audioData, shader, initialImageUrl);
-  await viz.init();
-  viz.start();
-  document.onclick = () => viz.startTime = performance.now();
-  document.onkeydown = () => viz.startTime = performance.now();
 }
-
-
-document.onclick = main
-document.onkeydown = main
-document.ontouchstart = main
-// main();
+document.onclick = main;
+document.onkeydown = main;
+document.ontouchstart = main;

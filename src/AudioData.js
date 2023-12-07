@@ -1,52 +1,53 @@
-import * as _unused from 'meyda'
-
-const {Meyda} = window;
-
-const createFilter = (context, type) => {
-  const filter = context.createBiquadFilter();
-  filter.type = type;
-  filter.frequency.value = 100;
-  return filter;
-}
-
 export class AudioData {
   constructor(audio, fftSize = 1024) {
     this.fftSize = fftSize;
-    this.context = new AudioContext();
-    this.analyser = new AnalyserNode(this.context);
-    this.loudnesses = new Array(60 * 5).fill(0);
-    this.peaks = new Array(10).fill(0);
-    this.audio = audio;
+    this.audioContext = new AudioContext();
+    // this.context = new AudioContext();
+    // this.analyser = new AnalyserNode(this.context);
+    // this.loudnesses = new Array(60 * 5).fill(0);
+    // this.peaks = new Array(10).fill(0);
+    // this.audio = audio;
 
-    this.filters = {
-      lowpass: createFilter(this.context, 'lowpass'),
-      highpass: createFilter(this.context, 'highpass'),
-      mid: createFilter(this.context, 'bandpass'),
-    }
+    // this.filters = {
+    //   lowpass: createFilter(this.context, 'lowpass'),
+    //   highpass: createFilter(this.context, 'highpass'),
+    //   mid: createFilter(this.context, 'bandpass'),
+    // }
 
-    this.analysers = {
-      lowpass: new AnalyserNode(this.context, { fftSize }),
-      highpass: new AnalyserNode(this.context, { fftSize }),
-      mid: new AnalyserNode(this.context, { fftSize }),
-    }
+    // this.analysers = {
+    //   lowpass: new AnalyserNode(this.context, { fftSize }),
+    //   highpass: new AnalyserNode(this.context, { fftSize }),
+    //   mid: new AnalyserNode(this.context, { fftSize }),
+    // }
 
-    this.loudness = {
-      low: 0,
-      mid: 0,
-      high: 0,
-      overall: 0,
-    }
+    // this.loudness = {
+    //   low: 0,
+    //   mid: 0,
+    //   high: 0,
+    //   overall: 0,
+    // }
+  }
+
+  async createMyAudioProcessor() {
+    console.log("Creating audio context");
+    await this.audioContext.resume();
+    await this.audioContext.audioWorklet.addModule("./MeydaAudioWorklet.js");
+    console.log("Audio context created");
+
+    return new AudioWorkletNode(this.audioContext, "meyda-audio");
   }
 
   start = async () => {
-    const audioInput = this.audio ? this.context.createMediaElementSource(this.audio) : this.context.createMediaStreamSource(await navigator.mediaDevices.getUserMedia({ audio: true, video: false }));
-    this.analyser.fftSize = this.fftSize;
-    audioInput.connect(this.analyser);
-    audioInput.connect(this.filters.lowpass).connect(this.analysers.lowpass);;
-    audioInput.connect(this.filters.highpass).connect(this.analysers.highpass);
-    audioInput.connect(this.filters.mid).connect(this.analysers.mid);
+    await this.createMyAudioProcessor();
 
-    this.setupMeyda(audioInput);
+    // const audioInput = this.audio ? this.context.createMediaElementSource(this.audio) : this.context.createMediaStreamSource(await navigator.mediaDevices.getUserMedia({ audio: true, video: false }));
+    // this.analyser.fftSize = this.fftSize;
+    // audioInput.connect(this.analyser);
+    // audioInput.connect(this.filters.lowpass).connect(this.analysers.lowpass);;
+    // audioInput.connect(this.filters.highpass).connect(this.analysers.highpass);
+    // audioInput.connect(this.filters.mid).connect(this.analysers.mid);
+
+    // this.setupMeyda(audioInput);
   }
 
   setupMeyda = (audioInput) => {

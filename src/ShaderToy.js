@@ -110,7 +110,6 @@ export class ShaderToy {
   isBeat = () => {
     const spectralFluxTracker = this.audioStatTrackers.spectralFlux;
     const fluxZScore = spectralFluxTracker.get().zScore;
-    if( spectralFluxTracker.values.length < STAT_HISTORY_LENGTH && spectralFluxTracker.values.length % 100 ==0) console.log(spectralFluxTracker.values.length, performance.now() - this.startTime);
     if(fluxZScore < 1.8) return false;
     return true;
   }

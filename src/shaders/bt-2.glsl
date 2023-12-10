@@ -1,11 +1,12 @@
 #version 300 es
-precision mediump float;
+precision highp float;
 
 uniform bool beat;
 uniform vec3 iResolution;
 uniform float iTime;
 uniform sampler2D iChannel1; // Image texture
 uniform float spectralSpreadZScore;
+uniform float spectralSpread;
 uniform float spectralCentroidZScore;
 uniform float spectralCentroidMin;
 uniform float spectralCentroidMax;
@@ -13,6 +14,7 @@ uniform float spectralCentroid;
 uniform float energyZScore;
 uniform float energyMin;
 uniform float energyMax;
+uniform float energy;
 out vec4 fragColor;
 
 vec4 getLastFrameColor(vec2 uv) {
@@ -185,10 +187,40 @@ vec4 applyDistortion(vec2 uv, float time, bool beat) {
 
     return originalColor;
 }
-
+vec4 defragColor(
+    in vec4 origColor,
+    in vec2 uv
+) {
+    if(int(uv.x) % 100 == 0) return origColor;
+    // look at the nearest 10 pixels, and see if they are the same color
+    vec4 colors[100];
+    for (int i = 0; i < 100; i++) {
+        colors[i] = texture(iChannel1, uv + vec2(i, 0.));
+        if (i == 0) continue;
+        if (colors[i].r != colors[0].r || colors[i].g != colors[0].g || colors[0].b != colors[i].b) return origColor;
+    }
+    float angle = iTime * 0.1;
+    float s = sin(angle);
+    float c = cos(angle);
+    mat2 rotationMatrix = mat2(c, -s, s, c);
+    vec2 rotatedUV = rotationMatrix * uv;
+    vec4 color = texture(iChannel1, rotatedUV);
+    vec3 hslColor = rgb2hsl(color.rgb);
+    // make the saturation a function of time and x position
+    hslColor.y = sin(iTime * 0.1 + uv.x * 0.1) * 0.5 + 0.5;
+    // make the hue a function of time and y position
+    hslColor.x = sin(iTime * 0.1 + uv.y * 0.1) * 0.5 + 0.5;
+    color.rgb = hsl2rgb(hslColor);
+    fract(color.rgb);
+    return color;
+}
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec2 uv = fragCoord.xy / iResolution.xy;
-
+    // if any of the base attributtes are -1, don't apply the effect
+    if(spectralCentroidZScore == 0. || energyZScore == 0. || spectralSpreadZScore == 0.){
+        fragColor = texture(iChannel1, uv);
+        return;
+    }
     vec4 color = vec4(0.);
     // Apply the beat-reactive distortion and color effect
     vec4 first = applyDistortion(uv, iTime, beat);
@@ -199,7 +231,17 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     color.rgb = mix(color.rgb, third, energyZScore);
     vec4 fourth = applyDistortion(uv, spectralSpreadZScore, beat);
     color = mix(color, fourth, energyZScore / 3.);
-    fragColor = color;
+    if (int(iTime) % 1000 == 0){
+        color = defragColor(color, uv);
+    }
+    // if the color was still grayish in the end, just replace it with cool colors
+    if (getGrayPercent(color) > 0.9) {
+        vec3 hslColor = rgb2hsl(color.rgb);
+        hslColor.x = sin(iTime * 0.1 + uv.y * 0.1) * 0.5 + 0.5;
+        hslColor.y = sin(iTime * 0.1 + uv.x * 0.1) * 0.5 + 0.5;
+        color.rgb = hsl2rgb(hslColor);
+    }
+    fragColor = fract(color);
 }
 
 void main(void) {

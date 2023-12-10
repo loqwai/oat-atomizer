@@ -7,7 +7,12 @@ uniform float iTime;
 uniform sampler2D iChannel1; // Image texture
 uniform float spectralSpreadZScore;
 uniform float spectralCentroidZScore;
+uniform float spectralCentroidMin;
+uniform float spectralCentroidMax;
+uniform float spectralCentroid;
 uniform float energyZScore;
+uniform float energyMin;
+uniform float energyMax;
 out vec4 fragColor;
 
 vec4 getLastFrameColor(vec2 uv) {
@@ -81,6 +86,8 @@ float getGrayPercent(vec4 color) {
 }
 // Function to apply a dynamic and beat-reactive distortion effect
 vec4 applyDistortion(vec2 uv, float time, bool beat) {
+    float normalizedSpectralCentroid = (spectralCentroid - spectralCentroidMin) / (spectralCentroidMax - spectralCentroidMin);
+    float normalizedEnergy = (energyZScore - energyMin) / (energyMax - energyMin);
     // Modify the hue rotation based on various factors
     float hueOffset = sin(uv.x * 10.0f + uv.y * 10.0f) * 0.5f;
     // float hueVariation = sin(time * spectralSpreadZScore) + cos(time * spectralCentroidZScore);
@@ -89,11 +96,19 @@ vec4 applyDistortion(vec2 uv, float time, bool beat) {
     float hueRotationSpeed = beat ? 0.5f : 0.1f;
 
     // Apply distortion
-    float waveX = sin(uv.y * 20.0f + time * energyZScore) * 0.005f;
-    float waveY = cos(uv.x * 20.0f + time * energyZScore) * 0.005f;
+    float waveX = sin(uv.y + time * energyZScore) * 0.005f;
+    float waveY = cos(uv.x + time * energyZScore) * 0.005f;
     if(beat) {
         waveX *= 5.0f;
         waveY *= 5.0f;
+    }
+    if(spectralCentroidZScore > 2.5) {
+        waveX *= -2.0f;
+        waveY *= -2.0f;
+    }
+    if(spectralCentroidZScore < -2.5) {
+        waveX *= 2.0f;
+        waveY *= 2.0f;
     }
     vec2 distortedUv = uv + vec2(waveX, waveY);
     distortedUv = fract(distortedUv);
@@ -101,42 +116,90 @@ vec4 applyDistortion(vec2 uv, float time, bool beat) {
     // Sample the texture with distorted coordinates
     vec4 originalColor = texture(iChannel1, distortedUv);
     float grayPercent = getGrayPercent(originalColor);
-    /*
-     * the gray threshold is a function of the energyZScore -
-     * which is the number of standard deviations from the mean of the energy
-     * of the current audio frame.
-     */
-     float baseGrayThreshold = 0.1f;
-    float grayThreshold =  baseGrayThreshold + (1. - (energyZScore /3.));
-    if(grayPercent > grayThreshold) {
-      // get the originalColor by the inverted distortion uv
-      // and modulated by the sin of time
-        // originalColor = texture(iChannel1, vec2(sin(time) - distortedUv.x, cos(time) - distortedUv.y));
-        vec4 colorToMixIn = beat ? vec4(1.0f, 0.0f, 0.0f, .02f) : vec4(0.0f, 0.0f, 1.0f, 0.02f);
-        originalColor = mix(originalColor, colorToMixIn, 0.1f);
+    float grayMax = 0.2;
+    float grayThreshold = grayMax * normalizedEnergy;
+    if(beat) {
+        grayThreshold = grayMax;
     }
-    vec3 hslColor = rgb2hsl(originalColor.rgb);
-    //if the spectralSpreadZScore is greater than 0.5, make things greener
-    //if the spectralCentroidZScore is greater than 0.5, make things redder
-    if(spectralCentroidZScore > 2.5f) {
-        hslColor.x += 0.1f;
-    }
-    if(spectralSpreadZScore > 2.5f) {
-        hslColor.x -= 0.1f;
-    }
-    hslColor.x += hueOffset + hueRotationSpeed * time; // Rotate the hue
-    // if there's a beat, make things more saturated
-    hslColor.x = fract(hslColor.x); // Ensure hue stays in the [0, 1] range
 
-    vec3 rgbColor = hsl2rgb(hslColor);
-    return vec4(rgbColor, 1.0f);
+    if(grayPercent > grayThreshold) {
+       // convert color to hsl
+         vec3 hslColor = rgb2hsl(originalColor.rgb);
+         float contrastAmount = 0.4f;
+         // if the z-score of the spectral centroid is greater than 2, increase the contrast
+            hslColor.y += contrastAmount;
+            hslColor.y = clamp(hslColor.y, 0.0f, 1.0f);
+            originalColor.rgb = hsl2rgb(hslColor);
+    }
+    // pick a new hue based off of the spectral centroid
+    float newHue = hue2rgb(normalizedSpectralCentroid, 1.0f, 0.5f);
+    // mix this new color with the original color
+    vec3 newColor = hsl2rgb(vec3(newHue, 0.0f, 0.8f));
+    originalColor.rgb = mix(originalColor.rgb, newColor, 0.1);
+    // if the z-score of the spectral centroid is greater than 2, invert the original color
+    if(spectralCentroidZScore > 1.5) {
+         vec3 hslColor = rgb2hsl(originalColor.rgb);
+          hslColor.y += (1.0f - hslColor.y)/2.;
+          originalColor.rgb = hsl2rgb(hslColor);
+    }
+    if (spectralCentroidZScore < -2.5) {
+        // make it bluer
+        vec3 hslColor = rgb2hsl(originalColor.rgb);
+        hslColor.x += 0.5f;
+        hslColor.x = fract(hslColor.x);
+        originalColor.rgb = hsl2rgb(hslColor);
+    }
+    // if the z-score of the energy is greater than 2.5
+    if(energyZScore > 2.5) {
+        // look at the neighboring pixels last frame
+        vec4 lastFrameColor = getLastFrameColor(uv);
+        // if the last frame color is brighter than the current frame color
+        if(getGrayPercent(lastFrameColor) > grayPercent) {
+            // invert the color
+            vec3 hslColor = rgb2hsl(originalColor.rgb);
+            hslColor.y = 1.0f - hslColor.y;
+            originalColor.rgb = hsl2rgb(hslColor);
+        }
+
+    }
+    if (energyZScore < -2.5) {
+        // make it darker
+        vec3 hslColor = rgb2hsl(originalColor.rgb);
+        hslColor.z -= 0.1f;
+        hslColor.z = clamp(hslColor.z, 0.0f, 1.0f);
+        originalColor.rgb = hsl2rgb(hslColor);
+    }
+    // if the z-score of the spectral spread is greater than 2, invert the original color
+    if(spectralSpreadZScore > 2.5) {
+       vec3 hslColor = rgb2hsl(originalColor.rgb);
+        hslColor.y += (1.0f - hslColor.y)/2.;
+        originalColor.rgb = hsl2rgb(hslColor);
+    }
+    if (spectralSpreadZScore < -2.5) {
+        // make it bluer
+        vec3 hslColor = rgb2hsl(originalColor.rgb);
+        hslColor.x += 0.5f;
+        hslColor.x = fract(hslColor.x);
+        originalColor.rgb = hsl2rgb(hslColor);
+    }
+
+    return originalColor;
 }
 
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec2 uv = fragCoord.xy / iResolution.xy;
 
+    vec4 color = vec4(0.);
     // Apply the beat-reactive distortion and color effect
-    fragColor = applyDistortion(uv, iTime, beat);
+    vec4 first = applyDistortion(uv, iTime, beat);
+    vec4 second = -0.1 * applyDistortion(uv, iTime - 0.1f, beat);
+    color = first + second;
+    // if the z-score of the spectral centroid is greater than 2, make the color crazy different
+    vec3 third = applyDistortion(uv, iTime * spectralCentroidZScore, beat).rgb;
+    color.rgb = mix(color.rgb, third, energyZScore);
+    vec4 fourth = applyDistortion(uv, spectralSpreadZScore, beat);
+    color = mix(color, fourth, energyZScore / 3.);
+    fragColor = color;
 }
 
 void main(void) {

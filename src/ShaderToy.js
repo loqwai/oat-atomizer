@@ -42,20 +42,20 @@ export class ShaderToy {
   };
 
   initAudioUniforms = () => {
-    const { gl, audioData } = this;
-    const program = this.state.program;
+    const { gl, audioData, state, } = this;
+    const program = state.program;
 
     for (const key in audioData.features) {
       if (typeof audioData.features[key] === "number") {
         //console.log(`initializing audio uniform for ${key}`);
         // Create uniform locations for each audio feature
-        this.state.audioUniforms[key] = gl.getUniformLocation(program, key);
+        state.audioUniforms[key] = gl.getUniformLocation(program, key);
       }
     }
-    this.state.audioUniforms.bpm = gl.getUniformLocation(program, "bpm");
+    state.audioUniforms.bpm = gl.getUniformLocation(program, "bpm");
 
     // Create the audio texture
-    this.state.audioTexture = this._createAudioTexture(1024);
+    state.audioTexture = this._createAudioTexture(1024);
   };
 
   writeAudioDataToTexture = () => {
@@ -77,7 +77,7 @@ export class ShaderToy {
   initializeAudioStatTrackers = () => {
     for (const key in this.audioData.features) {
       if (typeof this.audioData.features[key] === "number") {
-        //console.log('initializing audio stat tracker for', key)
+        console.log('initializing audio stat tracker for', key)
         this.audioStatTrackers[key] = new StatTracker(STAT_HISTORY_LENGTH);
       }
     }
@@ -91,7 +91,8 @@ export class ShaderToy {
     for (const key in audioStatTrackers) {
       const statTracker = audioStatTrackers[key];
       // get the key/value pairs from the stat tracker
-      console.log(statTracker);
+      this.state.audioUniforms[key] = gl.getUniformLocation(program, key);
+      console.log('creating uniform location for', key);
       for (let stat in statTracker.get()) {
         stat = stat.charAt(0).toUpperCase() + stat.slice(1);
         const uniformName = `${key}${stat}`;
@@ -157,7 +158,7 @@ export class ShaderToy {
 
 
   createRenderProgram = async () => {
-    const { gl, shaderUrl } = this;
+    const { gl, shaderUrl, audioStatTrackers, state, audioData } = this;
     const program = gl.createProgram();
 
     const vertexShader = await createShader(gl, gl.VERTEX_SHADER, `/src/shaders/generic-vertex.glsl`);
@@ -181,35 +182,47 @@ export class ShaderToy {
     const iChannel0Location = gl.getUniformLocation(program, "iChannel0");
     const iChannel1Location = gl.getUniformLocation(program, "iChannel1");
 
-    this.state.iBpmLocation = gl.getUniformLocation(program, "bpm");
+    state.iBpmLocation = gl.getUniformLocation(program, "bpm");
 
 
 
     // Create uniform locations for each audio feature from the audioData map
-    for (const key in this.audioData.features) {
-      if (typeof this.audioData.features[key] === "number") {
+    for (const key in audioData.features) {
+      if (typeof audioData.features[key] === "number") {
         //console.log('creating uniform location for', key);
-        this.state.audioUniforms[key] = gl.getUniformLocation(program, key);
+        state.audioUniforms[key] = gl.getUniformLocation(program, key);
       }
     }
-    // set uniform locations for each audio stat tracker
-    for (const key in this.audioStatTrackers) {
-      this.state.audioUniforms[`${key}ZScore`] = gl.getUniformLocation(program, `${key}ZScore`);
-      this.state.audioUniforms[`${key}Mean`] = gl.getUniformLocation(program, `${key}Mean`);
-      this.state.audioUniforms[`${key}StandardDeviation`] = gl.getUniformLocation(program, `${key}StandardDeviation`);
-      this.state.audioUniforms[`${key}Min`] = gl.getUniformLocation(program, `${key}Min`);
-      this.state.audioUniforms[`${key}Max`] = gl.getUniformLocation(program, `${key}Max`);
+
+
+    for (const key in audioStatTrackers) {
+      const statTracker = audioStatTrackers[key];
+      for (let stat in statTracker.get()) {
+        stat = stat.charAt(0).toUpperCase() + stat.slice(1);
+        const uniformName = `${key}${stat}`;
+        console.log(`creating uniform location for ${uniformName}`);
+        state.audioUniforms[uniformName] = gl.getUniformLocation(program, uniformName);
+      }
     }
 
-    this.state.audioUniforms.beat = gl.getUniformLocation(program, "beat");
+    // set uniform locations for each audio stat tracker
+    for (const key in audioStatTrackers) {
+      state.audioUniforms[`${key}ZScore`] = gl.getUniformLocation(program, `${key}ZScore`);
+      state.audioUniforms[`${key}Mean`] = gl.getUniformLocation(program, `${key}Mean`);
+      state.audioUniforms[`${key}StandardDeviation`] = gl.getUniformLocation(program, `${key}StandardDeviation`);
+      state.audioUniforms[`${key}Min`] = gl.getUniformLocation(program, `${key}Min`);
+      state.audioUniforms[`${key}Max`] = gl.getUniformLocation(program, `${key}Max`);
+    }
+
+    state.audioUniforms.beat = gl.getUniformLocation(program, "beat");
 
 
     // Set iChannel0 and iChannel1 locations if found
     // Set other uniform locations like iResolution and iTime
-    this.state.iChannel0Location = iChannel0Location;
-    this.state.iChannel1Location = iChannel1Location;
-    this.state.iResolution = gl.getUniformLocation(program, "iResolution");
-    this.state.iTime = gl.getUniformLocation(program, "iTime");
+    state.iChannel0Location = iChannel0Location;
+    state.iChannel1Location = iChannel1Location;
+    state.iResolution = gl.getUniformLocation(program, "iResolution");
+    state.iTime = gl.getUniformLocation(program, "iTime");
 
     return program;
   };

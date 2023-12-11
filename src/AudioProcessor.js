@@ -7,6 +7,7 @@ export class AudioProcessor {
   thingsThatWork = [
     'SpectralFlux',
     'SpectralSpread',
+    'SpectralCentroid',
   ];
 
   constructor(audioContext, sourceNode, fftSize = 2048) {

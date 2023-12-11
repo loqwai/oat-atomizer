@@ -13,10 +13,6 @@ function mu(i, amplitudeSpect) {
 }
 
 function calculateSpectralCentroid(ampSpectrum) {
-  if (typeof ampSpectrum !== "object" || ampSpectrum.length === 0) {
-    throw new TypeError('Invalid amplitude spectrum');
-  }
-
   return mu(1, ampSpectrum);
 }
 

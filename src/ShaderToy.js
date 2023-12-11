@@ -205,15 +205,6 @@ export class ShaderToy {
       }
     }
 
-    // set uniform locations for each audio stat tracker
-    for (const key in audioStatTrackers) {
-      state.audioUniforms[`${key}ZScore`] = gl.getUniformLocation(program, `${key}ZScore`);
-      state.audioUniforms[`${key}Mean`] = gl.getUniformLocation(program, `${key}Mean`);
-      state.audioUniforms[`${key}StandardDeviation`] = gl.getUniformLocation(program, `${key}StandardDeviation`);
-      state.audioUniforms[`${key}Min`] = gl.getUniformLocation(program, `${key}Min`);
-      state.audioUniforms[`${key}Max`] = gl.getUniformLocation(program, `${key}Max`);
-    }
-
     state.audioUniforms.beat = gl.getUniformLocation(program, "beat");
 
 
@@ -269,32 +260,19 @@ export class ShaderToy {
   }
 
   renderAudioStatTrackers = () => {
-    const { gl } = this;
-    for (const key in this.audioStatTrackers) {
-      const statTracker = this.audioStatTrackers[key];
-      const { zScore, mean, standardDeviation, min, max } = statTracker.get();
-      let keyName = `${key}ZScore`;
-      gl.uniform1f(this.state.audioUniforms[keyName], zScore || -1);
-      tagObject(gl, this.state.audioUniforms[keyName], keyName);
-
-      keyName = `${key}Mean`;
-      gl.uniform1f(this.state.audioUniforms[`${key}Mean`], mean || -1);
-      tagObject(gl, this.state.audioUniforms[keyName], keyName);
-
-      keyName = `${key}StandardDeviation`;
-      gl.uniform1f(this.state.audioUniforms[`${key}StandardDeviation`], standardDeviation || -1);
-      tagObject(gl, this.state.audioUniforms[keyName], keyName);
-
-      keyName = `${key}Min`;
-      gl.uniform1f(this.state.audioUniforms[`${key}Min`], min || -1);
-      tagObject(gl, this.state.audioUniforms[keyName], keyName);
-
-      keyName = `${key}Max`;
-      gl.uniform1f(this.state.audioUniforms[`${key}Max`], max || -1);
-      tagObject(gl, this.state.audioUniforms[keyName], keyName);
-
+    const { gl, audioStatTrackers, state, program } = this;
+    for (const key in audioStatTrackers) {
+      const statTracker = audioStatTrackers[key];
+      // get the key/value pairs from the stat tracker
+      const stats = statTracker.get();
+      for (const stat in stats) {
+        const statName = stat.charAt(0).toUpperCase() + stat.slice(1);
+        const uniformName = `${key}${statName}`;
+        gl.uniform1f(state.audioUniforms[uniformName], statTracker.get()[stat] || -1);
+        tagObject(gl, state.audioUniforms[uniformName], uniformName);
+      }
     }
-    gl.uniform1f(this.state.audioUniforms.beat, this.isBeat());
+    gl.uniform1f(state.audioUniforms.beat, this.isBeat());
   }
   render = () => {
     if (!this.running) return;

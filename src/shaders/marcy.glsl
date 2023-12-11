@@ -177,7 +177,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     mixColor = hslMix(mixColor, getLastFrameColor(fragCoord).rgb, 0.5); // Mix with previous frame for saturation persistence
 
     // Adjust mixing factor for background influence
-    float mixFactor = 0.1 * beamInfluence;
+    float mixFactor = beamInfluence;
 
     // Get last frame color and mix it with the beam color
     vec3 backgroundColor = mix(getLastFrameColor(fragCoord).rgb, mixColor, mixFactor);

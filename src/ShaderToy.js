@@ -162,7 +162,7 @@ export class ShaderToy {
     const program = gl.createProgram();
 
     const vertexShader = await createShader(gl, gl.VERTEX_SHADER, `/src/shaders/generic-vertex.glsl`);
-    const fragmentShader = await createShader(gl, gl.FRAGMENT_SHADER, `/src/shaders/${shaderUrl}.glsl`);
+    const fragmentShader = await createShader(gl, gl.FRAGMENT_SHADER, `/src/shaders/${shaderUrl}.glsl?timestamp=${Date.now()}`);
 
     gl.attachShader(program, vertexShader);
     gl.attachShader(program, fragmentShader);

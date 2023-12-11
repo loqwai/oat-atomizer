@@ -90,18 +90,14 @@ export class ShaderToy {
 
     for (const key in audioStatTrackers) {
       const statTracker = audioStatTrackers[key];
-      const { zScore, mean, standardDeviation, min,max } = statTracker.get();
-      this.state.audioUniforms[`${key}Zscore`] = gl.getUniformLocation(program, `${key}ZScore`);
-      gl.uniform1f(this.state.audioUniforms[`${key}ZScore`], zScore);
-
-      this.state.audioUniforms[`${key}Mean`] = gl.getUniformLocation(program, `${key}Mean`);
-      gl.uniform1f(this.state.audioUniforms[`${key}StandardDeviation`], standardDeviation);
-
-      this.state.audioUniforms[`${key}Min`] = gl.getUniformLocation(program, `${key}Min`);
-      gl.uniform1f(this.state.audioUniforms[`${key}Min`], min);
-
-      this.state.audioUniforms[`${key}Max`] = gl.getUniformLocation(program, `${key}Max`);
-      gl.uniform1f(this.state.audioUniforms[`${key}Max`], max);
+      // get the key/value pairs from the stat tracker
+      console.log(statTracker);
+      for (let stat in statTracker.get()) {
+        stat = stat.charAt(0).toUpperCase() + stat.slice(1);
+        const uniformName = `${key}${stat}`;
+        console.log(`creating uniform location for ${uniformName}`);
+        this.state.audioUniforms[uniformName] = gl.getUniformLocation(program, uniformName);
+      }
     }
     this.state.audioUniforms.beat = gl.getUniformLocation(program, "beat");
     gl.uniform1f(this.state.audioUniforms.beat, 0);
@@ -110,7 +106,7 @@ export class ShaderToy {
   isBeat = () => {
     const spectralFluxTracker = this.audioStatTrackers.spectralFlux;
     const fluxZScore = spectralFluxTracker.get().zScore;
-    if(fluxZScore < 1.8) return false;
+    if (fluxZScore < 1.8) return false;
     return true;
   }
 
@@ -118,7 +114,7 @@ export class ShaderToy {
     await this.audioData.start();
     this.initializeAudioStatTrackers();
 
-    const { gl, width, height} = this;
+    const { gl, width, height } = this;
     gl.viewport(0, 0, width, height);
     const program = await this.createRenderProgram();
     this.imageTexture = await this.createImageTexture(this.initialImageUrl);
@@ -147,17 +143,17 @@ export class ShaderToy {
 
     // Define the vertices with 1/4 scale and stretching to fill the canvas
     const vertices = [
-        -2.0, -2.0,
-        -2.0, 2.0,
-        2.0, -2.0,
-        2.0, -2.0,
-        -2.0, 2.0,
-        2.0, 2.0,
+      -2.0, -2.0,
+      -2.0, 2.0,
+      2.0, -2.0,
+      2.0, -2.0,
+      -2.0, 2.0,
+      2.0, 2.0,
     ];
 
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
     return buffer;
-};
+  };
 
 
   createRenderProgram = async () => {
@@ -263,7 +259,7 @@ export class ShaderToy {
     const { gl } = this;
     for (const key in this.audioStatTrackers) {
       const statTracker = this.audioStatTrackers[key];
-      const { zScore, mean, standardDeviation, min,max } = statTracker.get();
+      const { zScore, mean, standardDeviation, min, max } = statTracker.get();
       let keyName = `${key}ZScore`;
       gl.uniform1f(this.state.audioUniforms[keyName], zScore || -1);
       tagObject(gl, this.state.audioUniforms[keyName], keyName);

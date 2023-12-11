@@ -12,179 +12,184 @@ uniform float energyNormalized;
 uniform float spectralCentroidNormalized;
 out vec4 fragColor;
 vec4 getLastFrameColor(vec2 uv) {
-    return texture(iChannel1, vec2(uv.x, iResolution.y - uv.y) / iResolution.xy);
+  return texture(iChannel1, vec2(uv.x, iResolution.y - uv.y) / iResolution.xy);
 }
 
 // Function to convert RGB to HSL
 vec3 rgb2hsl(vec3 color) {
-    float maxColor = max(max(color.r, color.g), color.b);
-    float minColor = min(min(color.r, color.g), color.b);
-    float delta = maxColor - minColor;
+  float maxColor = max(max(color.r, color.g), color.b);
+  float minColor = min(min(color.r, color.g), color.b);
+  float delta = maxColor - minColor;
 
-    float h = 0.0f;
-    float s = 0.0f;
-    float l = (maxColor + minColor) / 2.0f;
+  float h = 0.0f;
+  float s = 0.0f;
+  float l = (maxColor + minColor) / 2.0f;
 
-    if(delta != 0.0f) {
-        s = l < 0.5f ? delta / (maxColor + minColor) : delta / (2.0f - maxColor - minColor);
+  if(delta != 0.0f) {
+    s = l < 0.5f ? delta / (maxColor + minColor) : delta / (2.0f - maxColor - minColor);
 
-        if(color.r == maxColor) {
-            h = (color.g - color.b) / delta + (color.g < color.b ? 6.0f : 0.0f);
-        } else if(color.g == maxColor) {
-            h = (color.b - color.r) / delta + 2.0f;
-        } else {
-            h = (color.r - color.g) / delta + 4.0f;
-        }
-        h /= 6.0f;
+    if(color.r == maxColor) {
+      h = (color.g - color.b) / delta + (color.g < color.b ? 6.0f : 0.0f);
+    } else if(color.g == maxColor) {
+      h = (color.b - color.r) / delta + 2.0f;
+    } else {
+      h = (color.r - color.g) / delta + 4.0f;
     }
+    h /= 6.0f;
+  }
 
-    return vec3(h, s, l);
+  return vec3(h, s, l);
 }
 
 // Helper function for HSL to RGB conversion
 float hue2rgb(float p, float q, float t) {
-    if(t < 0.0f)
-        t += 1.0f;
-    if(t > 1.0f)
-        t -= 1.0f;
-    if(t < 1.0f / 6.0f)
-        return p + (q - p) * 6.0f * t;
-    if(t < 1.0f / 2.0f)
-        return q;
-    if(t < 2.0f / 3.0f)
-        return p + (q - p) * (2.0f / 3.0f - t) * 6.0f;
-    return p;
+  if(t < 0.0f)
+    t += 1.0f;
+  if(t > 1.0f)
+    t -= 1.0f;
+  if(t < 1.0f / 6.0f)
+    return p + (q - p) * 6.0f * t;
+  if(t < 1.0f / 2.0f)
+    return q;
+  if(t < 2.0f / 3.0f)
+    return p + (q - p) * (2.0f / 3.0f - t) * 6.0f;
+  return p;
 }
 
 // Function to convert HSL to RGB
 vec3 hsl2rgb(vec3 hsl) {
-    float h = hsl.x;
-    float s = hsl.y;
-    float l = hsl.z;
+  float h = hsl.x;
+  float s = hsl.y;
+  float l = hsl.z;
 
-    float r, g, b;
+  float r, g, b;
 
-    if(s == 0.0f) {
-        r = g = b = l; // achromatic
-    } else {
-        float q = l < 0.5f ? l * (1.0f + s) : l + s - l * s;
-        float p = 2.0f * l - q;
-        r = hue2rgb(p, q, h + 1.0f / 3.0f);
-        g = hue2rgb(p, q, h);
-        b = hue2rgb(p, q, h - 1.0f / 3.0f);
-    }
+  if(s == 0.0f) {
+    r = g = b = l; // achromatic
+  } else {
+    float q = l < 0.5f ? l * (1.0f + s) : l + s - l * s;
+    float p = 2.0f * l - q;
+    r = hue2rgb(p, q, h + 1.0f / 3.0f);
+    g = hue2rgb(p, q, h);
+    b = hue2rgb(p, q, h - 1.0f / 3.0f);
+  }
 
-    return vec3(r, g, b);
+  return vec3(r, g, b);
 }
 
 float getGrayPercent(vec3 color) {
-    return (color.r + color.g + color.b) / 3.0f;
-}
-// Function to render the beam at specified coordinates with given colors
-vec3 adventure(vec3 hairColor, vec3 bodyColor, vec3 legsColor, vec2 uv) {
-    // Time-based transformation for the twisting, looping beam
-    float time = iTime;
-    float twist = sin(uv.y * 10.0 + time) * (energyNormalized/4.);
-    uv.x += twist;
-
-    // Directly use beamWidth to determine the width of the beam
-    float beamWidth = 0.1; // Adjust this value to change the beam width
-    float beam = smoothstep(beamWidth, 0.0, abs(uv.x));
-
-    // Vertical color bands
-    float third = 1.0 / 3.0; // One third of the height
-    third += (energyNormalized/10.);
-    vec3 color;
-    if (uv.y > (1.7 * third)) {
-        color = hairColor; // Top section: hair
-    } else if (uv.y > third) {
-        color = bodyColor; // Middle section: body
-    } else {
-        color = legsColor; // Bottom section: legs
-    }
-
-    // Apply the color to the beam
-    if (beam > 0.01) {
-        return color * beam; // Use beam as intensity mask
-    } else {
-        return vec3(0.0); // Transparent where beam is not present
-    }
+  return (color.r + color.g + color.b) / 3.0f;
 }
 
 vec3 hslMix(vec3 color1, vec3 color2, float m) {
-    vec3 hsl1 = rgb2hsl(color1);
-    vec3 hsl2 = rgb2hsl(color2);
+  vec3 hsl1 = rgb2hsl(color1);
+  vec3 hsl2 = rgb2hsl(color2);
     // rotate color1 hue towards color2 hue by mix amount
-    hsl1.x += (hsl2.x - hsl1.x) * m;
+  hsl1.x += (hsl2.x - hsl1.x) * m;
     // mix saturation and lightness
-    hsl1.y += (hsl2.y - hsl1.y) * m;
+  hsl1.y += (hsl2.y - hsl1.y) * m;
     // hsl1.z += (hsl2.z - hsl1.z) * m;
 
-    return hsl2rgb(hsl1);
+  return hsl2rgb(hsl1);
 }
 
+vec2 rotateUV(vec2 uv, float angle, vec2 pivot) {
+    // Translate UV coordinates to pivot
+  uv -= pivot;
+    // Apply rotation
+  float cosA = cos(angle);
+  float sinA = sin(angle);
+  vec2 rotatedUV = vec2(cosA * uv.x - sinA * uv.y, sinA * uv.x + cosA * uv.y);
+    // Translate UV coordinates back
+  return rotatedUV + pivot;
+}
 
 vec3 intertwinedBeams(vec3 color1, vec3 color2, vec3 color3, vec2 uv, float time, float offset, float centroidEffect) {
     // Increased twist frequency and amplitude for more distinct intertwining
-    float twistFrequency = 3.0 + 6.0 * centroidEffect; // Adjusted frequency
-    float twistAmplitude = 0.05; // Increased amplitude
+  float twistFrequency = 3.0f + 6.0f * centroidEffect; // Adjusted frequency
+  float twistAmplitude = 0.1f; // Increased amplitude for more space between loops
+
+     // Dynamic horizontal movement
+       // Oscillating horizontal movement
+  float horizontalMovement = sin(time * 0.5f) * 0.5f; // Reduced amplitude and oscillation
+  uv.x += horizontalMovement;
+
+    // Adjusted rotation
+  float rotationAngle = sin(time * 0.2f) * 0.1f; // Reduced and oscillating rotation angle
+  vec2 pivot = vec2(0.5f, 0.5f); // Center of the screen as pivot
+  uv = rotateUV(uv, rotationAngle, pivot);
 
     // Continuous wrap-around for the twist effect
-    float yCoord = mod(uv.y + 1.0, 2.0) - 1.0;
-    float twist = sin(yCoord * twistFrequency + time + offset) * twistAmplitude;
-    float twist2 = sin(yCoord * twistFrequency + time + offset + 3.1415) * twistAmplitude;
+  float yCoord = mod(uv.y + 1.0f, 2.0f) - 1.0f;
+  float twist = sin(yCoord * twistFrequency + time + offset) * twistAmplitude;
+  float twist2 = sin(yCoord * twistFrequency + time + offset + 3.1415f) * twistAmplitude;
 
     // Alternate twist direction for intertwined effect
-    uv.x += (yCoord > 0.0 ? twist : twist2);
+  uv.x += (yCoord > 0.0f ? twist : twist2);
 
-    // Adjusted beam width for sharper edges
-    float beamWidth = 0.03; // Narrower width for sharper edges
-    float edgeSoftness = 0.01; // Reduced softness
-    float beam = smoothstep(beamWidth, beamWidth - edgeSoftness, abs(uv.x));
+    // Further reduced beam width and edge softness for sharper edges
+  float beamWidth = 0.05f + (energyNormalized / 100.f);
+  float edgeSoftness = abs(spectralSpreadZScore / 3.f) * 0.1f; // Adjusted softness
+  float beam = smoothstep(beamWidth, beamWidth - edgeSoftness, abs(uv.x));
 
     // Section division for equal color distribution
-    float section = mod(yCoord * 3.0 + 1.5, 2.0) - 1.0;
+  float section = mod(yCoord * 3.0f + 1.5f, 2.0f) - 1.0f;
 
-    vec3 color;
-    if (section < -1.0/2.0) {
-        color = color3;
-    } else if (section < 1.0/5.0) {
-        color = color2;
-    } else {
-        color = color1;
-    }
+  vec3 color;
+  if(section < -1.0f / 2.0f) {
+    color = color3;
+  } else if(section < 1.0f / 5.0f) {
+    color = color2;
+  } else {
+    color = color1;
+  }
 
-    return color * beam;
+  return color * beam;
 }
 
-
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
-    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;
-    uv.x *= iResolution.x / iResolution.y; // Aspect ratio correction
-    uv.y = (uv.y + 1.0) * 0.5; // Normalize uv.y to range from 0 to 1
+  vec2 uv = (fragCoord - 0.5f * iResolution.xy) / iResolution.y;
+  uv.x *= iResolution.x / iResolution.y; // Aspect ratio correction
+  uv.y = (uv.y + 1.0f) * 0.5f; // Normalize uv.y to range from 0 to 1
 
     // Marceline color variables
-    vec3 marcyHairColor = vec3(0.07451, 0.043137, 0.168627); // Dark purple
-    vec3 marcyBodyColor = vec3(0.45098, 0.458824, 0.486275); // Gray skin
-    vec3 marcyLegsColor = vec3(0.180392, 0.109804, 0.113725); // Boots
+  vec3 marcyHairColor = vec3(0.07451f, 0.043137f, 0.168627f); // Dark purple
+  vec3 marcyBodyColor = vec3(0.45098f, 0.458824f, 0.486275f); // Gray skin
+  vec3 marcyLegsColor = vec3(0.180392f, 0.109804f, 0.113725f); // Boots
 
     // Bubblegum color variables
-    vec3 bubblegumHairColor = vec3(0.988235, 0.278431, 0.756863); // Pink hair
-    vec3 bubblegumBodyColor = vec3(0.992157,0.745098,0.996078); // Light pink skin
-    vec3 bubblegumLegsColor = vec3(0.803922, 0.286275, 0.898039); // Pink boots
+  vec3 bubblegumHairColor = vec3(0.988235f, 0.278431f, 0.756863f); // Pink hair
+  vec3 bubblegumBodyColor = vec3(0.992157f, 0.745098f, 0.996078f); // Light pink skin
+  vec3 bubblegumLegsColor = vec3(0.803922f, 0.286275f, 0.898039f); // Pink boots
 
     // Create intertwined beams
-    float centroidEffect = abs(spectralCentroidZScore);
-    vec3 marcyBeam = intertwinedBeams(marcyHairColor, marcyBodyColor, marcyLegsColor, uv, iTime, 0.0, centroidEffect);
-    vec3 bubbleBeam = intertwinedBeams(bubblegumHairColor, bubblegumBodyColor, bubblegumLegsColor, uv, iTime, 3.1415, centroidEffect);
+  float centroidEffect = abs(spectralCentroidZScore);
+  vec3 marcyBeam = intertwinedBeams(marcyHairColor, marcyBodyColor, marcyLegsColor, uv, iTime, 0.0f, centroidEffect);
+  vec3 bubbleBeam = intertwinedBeams(bubblegumHairColor, bubblegumBodyColor, bubblegumLegsColor, uv, iTime, 3.1415f, centroidEffect);
     // Blend the beams based on energyNormalized
-    vec3 finalBeam = mix(marcyBeam, bubbleBeam, spectralCentroidNormalized);
+  vec3 finalBeam = mix(marcyBeam, bubbleBeam, spectralCentroidNormalized / 2.f);
 
-    fragColor = vec4(finalBeam, 1.0);
+    // Calculate beam influence on background color
+    float beamInfluence = max(length(marcyBeam), length(bubbleBeam));
+
+    // Determine the color to mix based on beam influence
+    vec3 mixColor = (beamInfluence > 0.5) ? marcyHairColor : bubblegumHairColor;
+    mixColor = hslMix(mixColor, getLastFrameColor(fragCoord).rgb, 0.5); // Mix with previous frame for saturation persistence
+
+    // Adjust mixing factor for background influence
+    float mixFactor = 0.1 * beamInfluence;
+
+    // Get last frame color and mix it with the beam color
+    vec3 backgroundColor = mix(getLastFrameColor(fragCoord).rgb, mixColor, mixFactor);
+
+    // Final color is a blend of beam color and evolving background color
+    vec3 finalColor = mix(finalBeam, backgroundColor, 0.5);
+
+    fragColor = vec4(finalColor, 1.0);
 }
 
 void main(void) {
-    vec4 color = vec4(0.0f, 0.0f, 0.0f, 1.0f);
-    mainImage(color, gl_FragCoord.xy);
-    fragColor = color;
+  vec4 color = vec4(0.0f, 0.0f, 0.0f, 1.0f);
+  mainImage(color, gl_FragCoord.xy);
+  fragColor = color;
 }

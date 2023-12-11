@@ -125,31 +125,33 @@ vec3 hslMix(vec3 color1, vec3 color2, float m) {
 
 
 vec3 intertwinedBeams(vec3 color1, vec3 color2, vec3 color3, vec2 uv, float time, float offset, float centroidEffect) {
-    // Reduced twist frequency and amplitude for a more gentle spinning
-    float twistFrequency = 5.0 + 10.0 * centroidEffect; // Lower frequency
-    float twistAmplitude = 0.03; // Smaller amplitude
+    // Increased twist frequency and amplitude for more distinct intertwining
+    float twistFrequency = 3.0 + 6.0 * centroidEffect; // Adjusted frequency
+    float twistAmplitude = 0.05; // Increased amplitude
 
     // Continuous wrap-around for the twist effect
-    float yCoord = mod(uv.y + 1.0, 2.0) - 1.0; // Wrap around from -1 to 1
+    float yCoord = mod(uv.y + 1.0, 2.0) - 1.0;
     float twist = sin(yCoord * twistFrequency + time + offset) * twistAmplitude;
     float twist2 = sin(yCoord * twistFrequency + time + offset + 3.1415) * twistAmplitude;
 
     // Alternate twist direction for intertwined effect
     uv.x += (yCoord > 0.0 ? twist : twist2);
 
-    float beamWidth = 0.05; // Beam width
-    float beam = smoothstep(beamWidth, 0.0, abs(uv.x));
+    // Adjusted beam width for sharper edges
+    float beamWidth = 0.03; // Narrower width for sharper edges
+    float edgeSoftness = 0.01; // Reduced softness
+    float beam = smoothstep(beamWidth, beamWidth - edgeSoftness, abs(uv.x));
 
     // Section division for equal color distribution
-    float section = mod(yCoord * 3.0 + 1.5, 2.0) - 1.0; // Adjusted for equal distribution
+    float section = mod(yCoord * 3.0 + 1.5, 2.0) - 1.0;
 
     vec3 color;
     if (section < -1.0/2.0) {
-        color = color3; // First color
+        color = color3;
     } else if (section < 1.0/5.0) {
-        color = color2; // Second color
+        color = color2;
     } else {
-        color = color1; // Third color
+        color = color1;
     }
 
     return color * beam;
@@ -176,7 +178,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec3 marcyBeam = intertwinedBeams(marcyHairColor, marcyBodyColor, marcyLegsColor, uv, iTime, 0.0, centroidEffect);
     vec3 bubbleBeam = intertwinedBeams(bubblegumHairColor, bubblegumBodyColor, bubblegumLegsColor, uv, iTime, 3.1415, centroidEffect);
     // Blend the beams based on energyNormalized
-    vec3 finalBeam = mix(marcyBeam, bubbleBeam, energyNormalized);
+    vec3 finalBeam = mix(marcyBeam, bubbleBeam, spectralCentroidNormalized);
 
     fragColor = vec4(finalBeam, 1.0);
 }

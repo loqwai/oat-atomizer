@@ -9,6 +9,7 @@ uniform float spectralSpreadZScore;
 uniform float spectralCentroidZScore;
 uniform float energyZScore;
 uniform float energyNormalized;
+uniform float spectralCentroidNormalized;
 out vec4 fragColor;
 vec4 getLastFrameColor(vec2 uv) {
     return texture(iChannel1, vec2(uv.x, iResolution.y - uv.y) / iResolution.xy);
@@ -83,7 +84,7 @@ float getGrayPercent(vec3 color) {
 vec3 adventure(vec3 hairColor, vec3 bodyColor, vec3 legsColor, vec2 uv) {
     // Time-based transformation for the twisting, looping beam
     float time = iTime;
-    float twist = sin(uv.y * 10.0 + time) * (spectralSpreadZScore / 10.);
+    float twist = sin(uv.y * 10.0 + time) * (energyNormalized/4.);
     uv.x += twist;
 
     // Directly use beamWidth to determine the width of the beam
@@ -92,6 +93,7 @@ vec3 adventure(vec3 hairColor, vec3 bodyColor, vec3 legsColor, vec2 uv) {
 
     // Vertical color bands
     float third = 1.0 / 3.0; // One third of the height
+    third += (energyNormalized/10.);
     vec3 color;
     if (uv.y > (1.7 * third)) {
         color = hairColor; // Top section: hair
@@ -121,6 +123,7 @@ vec3 hslMix(vec3 color1, vec3 color2, float m) {
     return hsl2rgb(hsl1);
 }
 
+
 void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
     vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;
     uv.x *= iResolution.x / iResolution.y; // Aspect ratio correction
@@ -138,21 +141,19 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
     vec3 bubblegumLegsColor = vec3(0.803922, 0.286275, 0.898039); // pink boots
 
 
-
-
     // Render the beam using the adventure function
     vec3 marcy = adventure(marcyHairColor, marcyBodyColor, marcyLegsColor, uv);
 
     vec3 bubble = adventure(bubblegumHairColor, bubblegumBodyColor, bubblegumLegsColor, uv);
     // combine the 2 beams as a function of the normalized energy, using hsl
 
-    vec3 primaryBeamColor = beat? bubble : marcy;
-    vec3 secondaryBeamColor = beat? marcy : bubble;
-    vec3 primaryHairColor = beat? bubblegumHairColor : marcyHairColor;
-    vec3 secondaryHairColor = beat? marcyHairColor : bubblegumHairColor;
+    vec3 primaryBeamColor = spectralCentroidNormalized < 0.5 ? bubble : marcy;
+    vec3 secondaryBeamColor = spectralCentroidNormalized < 0.5 ? marcy : bubble;
+    vec3 primaryHairColor = spectralCentroidNormalized < 0.5 ? bubblegumHairColor : marcyHairColor;
+    vec3 secondaryHairColor = spectralCentroidNormalized < 0.5 ? marcyHairColor : bubblegumHairColor;
 
     // vec3 primaryBeamColor = hslMix(bubble, marcy, energyNormalized);
-    vec3 darkerPrevFrameColor = getLastFrameColor(fragCoord).rgb;
+    vec3 darkerPrevFrameColor = getLastFrameColor(fragCoord).rgb * 0.5;
     // if the previous frame color wasn't completely black, mix in the bubble
     if (getGrayPercent(darkerPrevFrameColor) > 0.1) {
         darkerPrevFrameColor = mix(secondaryHairColor, darkerPrevFrameColor, 0.5);

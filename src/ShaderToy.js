@@ -5,6 +5,7 @@ const STAT_HISTORY_LENGTH = 500;
 export class ShaderToy {
   constructor(canvas, audioData, shaderUrl, initialImageUrl) {
     console.log("ShaderToy constructor called");
+    this.isInit = true
     this.startTime = performance.now();
     this.canvas = canvas;
     this.width = canvas.width;
@@ -131,7 +132,7 @@ export class ShaderToy {
     this.state.iResolution = gl.getUniformLocation(program, "iResolution");
     this.state.iTime = gl.getUniformLocation(program, "iTime");
     this.state.iChannel1Location = gl.getUniformLocation(program, "iChannel1");
-
+    this.state.isInit = gl.getUniformLocation(program, "isInit");
     // Initialize audio feature uniforms
     this.initAudioUniforms();
     this.initializeAudioStatTrackerUniforms();
@@ -284,7 +285,7 @@ export class ShaderToy {
     gl.bindVertexArray(state.vao);
     gl.uniform3f(state.iResolution, width, height, 1.0);
     gl.uniform1f(state.iTime, (performance.now() - this.startTime) / 1000);
-
+    gl.uniform1f(state.isInit, this.isInit);
     this.writeAudioDataToTexture();
     gl.useProgram(state.program);
     gl.bindVertexArray(state.vao);
@@ -318,6 +319,7 @@ export class ShaderToy {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
 
     this.imageTexture = texture;
+    this.isInit = false;
     requestAnimationFrame(this.render);
   };
 

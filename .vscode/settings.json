@@ -16,5 +16,25 @@
     "reportUndefinedVariable": "none"
   },
   "python.analysis.typeCheckingMode": "strict",
-  "workbench.colorTheme": "Default Dark+"
+  "workbench.colorTheme": "Default Dark+",
+  "workbench.colorCustomizations": {
+    "activityBar.activeBackground": "#6dfb9a",
+    "activityBar.background": "#6dfb9a",
+    "activityBar.foreground": "#15202b",
+    "activityBar.inactiveForeground": "#15202b99",
+    "activityBarBadge.background": "#a983fc",
+    "activityBarBadge.foreground": "#15202b",
+    "commandCenter.border": "#15202b99",
+    "sash.hoverBorder": "#6dfb9a",
+    "statusBar.background": "#3bfa78",
+    "statusBar.foreground": "#15202b",
+    "statusBarItem.hoverBackground": "#09f956",
+    "statusBarItem.remoteBackground": "#3bfa78",
+    "statusBarItem.remoteForeground": "#15202b",
+    "titleBar.activeBackground": "#3bfa78",
+    "titleBar.activeForeground": "#15202b",
+    "titleBar.inactiveBackground": "#3bfa7899",
+    "titleBar.inactiveForeground": "#15202b99"
+  },
+  "peacock.color": "#3bfa78"
 }

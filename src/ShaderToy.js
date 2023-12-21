@@ -265,6 +265,7 @@ export class ShaderToy {
       const statTracker = audioStatTrackers[key];
       // get the key/value pairs from the stat tracker
       const stats = statTracker.get();
+      console.log('stats for ', key, stats);
       for (const stat in stats) {
         const statName = stat.charAt(0).toUpperCase() + stat.slice(1);
         const uniformName = `${key}${statName}`;
